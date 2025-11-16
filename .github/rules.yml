@@ -1,0 +1,527 @@
+name: Code Review Rules
+description: Reguły przeglądu kodu dla projektu Kalendarz MVP
+
+rules:
+  # ============================================
+  # LARAVEL / PHP RULES
+  # ============================================
+  
+  - name: Laravel PSR-12 Compliance
+    description: Kod PHP musi być zgodny ze standardem PSR-12
+    condition:
+      include:
+        - "backend/**/*.php"
+    checks:
+      - "Kod używa 4 spacji do wcięć (nie tabulatorów)"
+      - "Brak zamykającego tagu ?> w plikach zawierających tylko PHP"
+      - "Namespace i use statements są na początku pliku"
+      - "Klasy używają PascalCase"
+      - "Metody używają camelCase"
+      - "Stałe używają UPPER_CASE"
+      - "Każda klasa jest w osobnym pliku"
+      - "Opening brace dla klas i metod jest w nowej linii"
+
+  - name: Laravel Controllers Best Practices
+    description: Kontrolery powinny być cienkie i delegować logikę
+    condition:
+      include:
+        - "backend/app/Http/Controllers/**/*.php"
+    checks:
+      - "Kontroler dziedziczy po Controller base class"
+      - "Metody kontrolera nie zawierają złożonej logiki biznesowej"
+      - "Używa się Form Request Validation zamiast validate() w kontrolerze"
+      - "Kontroler zwraca API Resources dla JSON responses"
+      - "Brak bezpośrednich zapytań DB w kontrolerze (używaj metod modelu)"
+      - "Nazwa kontrolera kończy się na 'Controller'"
+      - "RESTful naming conventions (index, store, show, update, destroy)"
+
+  - name: Eloquent Models Standards
+    description: Modele Eloquent powinny być prawidłowo skonfigurowane
+    condition:
+      include:
+        - "backend/app/Models/**/*.php"
+    checks:
+      - "Model dziedziczy po Illuminate\\Database\\Eloquent\\Model"
+      - "Property $fillable lub $guarded jest zdefiniowane"
+      - "Property $casts jest użyte dla typowania atrybutów"
+      - "Relacje mają type hints"
+      - "Używa się singular naming dla modeli (Event, nie Events)"
+      - "Złożone zapytania są w query scopes"
+      - "Accessors i Mutators używają nowej składni Laravel 12"
+      - "Timestamps są włączone lub wyraźnie wyłączone"
+
+  - name: Database Migrations Safety
+    description: Migracje muszą być bezpieczne i odwracalne
+    condition:
+      include:
+        - "backend/database/migrations/*.php"
+    checks:
+      - "Metoda down() prawidłowo cofa zmiany z up()"
+      - "Używa się schema builder zamiast raw SQL"
+      - "Foreign keys mają onDelete i onUpdate constraints"
+      - "Indexes są dodawane dla foreign keys"
+      - "Nazwy tabel są w liczbie mnogiej (events, templates)"
+      - "Nazwa pliku migracji jest opisowa"
+      - "Nie modyfikuje się starych migracji (twórz nowe)"
+
+  - name: API Routes and Versioning
+    description: API routes muszą być poprawnie zorganizowane
+    condition:
+      include:
+        - "backend/routes/api.php"
+    checks:
+      - "Wszystkie route używają middleware(['auth:sanctum']) dla chronionych endpointów"
+      - "Routes są grupowane logicznie"
+      - "RESTful conventions są przestrzegane"
+      - "Używa się Route::apiResource() dla standardowych CRUD"
+      - "Brak logiki biznesowej w routes file"
+
+  - name: Laravel Validation Rules
+    description: Walidacja musi być prawidłowo zaimplementowana
+    condition:
+      include:
+        - "backend/app/Http/Requests/**/*.php"
+    checks:
+      - "Form Request dziedziczy po FormRequest"
+      - "Metoda rules() zwraca array z regułami walidacji"
+      - "Używa się dostępnych Laravel validation rules"
+      - "Custom error messages są w messages() metodzie"
+      - "Authorization logic jest w authorize() metodzie"
+      - "Złożona walidacja używa custom validation rules"
+
+  - name: Laravel Sanctum Authentication
+    description: Uwierzytelnianie przez Sanctum musi być bezpieczne
+    condition:
+      include:
+        - "backend/app/Http/Controllers/Api/AuthController.php"
+        - "backend/config/sanctum.php"
+    checks:
+      - "Hasła są hashowane przez Hash::make() lub bcrypt()"
+      - "Tokeny Sanctum mają abilities/permissions jeśli potrzebne"
+      - "Logout usuwa tokeny przez $user->tokens()->delete()"
+      - "CORS jest prawidłowo skonfigurowany dla SPA"
+      - "Stateful domains są ustawione w sanctum config"
+
+  - name: SQL Injection Prevention
+    description: Kod musi być odporny na SQL injection
+    condition:
+      include:
+        - "backend/**/*.php"
+    checks:
+      - "Używa się Eloquent lub Query Builder zamiast raw SQL"
+      - "Jeśli używany jest DB::raw(), parametry są bindowane"
+      - "Nigdy nie konkatenuje się user input do SQL queries"
+      - "WhereRaw() używa parametrów bindowanych"
+
+  - name: Laravel Testing Standards
+    description: Testy backend muszą być prawidłowo napisane
+    condition:
+      include:
+        - "backend/tests/**/*.php"
+    checks:
+      - "Testy używają PEST lub PHPUnit syntax konsekwentnie"
+      - "Feature testy używają RefreshDatabase trait"
+      - "Testy są niezależne od siebie"
+      - "Nazwy testów są opisowe (it(), test())"
+      - "Assertions są jasne i konkretne"
+      - "Używa się factories zamiast ręcznego tworzenia danych"
+      - "API testy sprawdzają status codes, structure, data"
+
+  # ============================================
+  # VUE.JS 3 RULES
+  # ============================================
+
+  - name: Vue 3 Composition API Standards
+    description: Komponenty Vue 3 muszą używać Composition API
+    condition:
+      include:
+        - "frontend/src/**/*.vue"
+    checks:
+      - "Używa się <script setup> syntax"
+      - "Reactive state używa ref() lub reactive()"
+      - "Computed properties używają computed()"
+      - "Side effects są w watch() lub watchEffect()"
+      - "Lifecycle hooks są poprawnie importowane (onMounted, onUnmounted)"
+      - "Props są definiowane przez defineProps()"
+      - "Emits są definiowane przez defineEmits()"
+
+  - name: Vue Component Structure
+    description: Komponenty Vue muszą mieć prawidłową strukturę
+    condition:
+      include:
+        - "frontend/src/**/*.vue"
+    checks:
+      - "Kolejność bloków: <script setup>, <template>, <style>"
+      - "Jeden komponent na plik"
+      - "Nazwa pliku w PascalCase dla komponentów"
+      - "Props mają type validation"
+      - "Emits mają validation jeśli potrzebna"
+      - "Style są scoped (<style scoped>)"
+      - "Template ma jeden root element lub używa fragments"
+
+  - name: Vue Props and Emits Validation
+    description: Props i emits muszą być walidowane
+    condition:
+      include:
+        - "frontend/src/**/*.vue"
+    checks:
+      - "Props mają zdefiniowane typy (String, Number, Object, Array, etc.)"
+      - "Props mają default value dla optional props"
+      - "Props mają required: true dla wymaganych props"
+      - "Emits są deklarowane na początku <script setup>"
+      - "Emit names używają kebab-case"
+      - "Props są immutable w komponencie (nie modyfikowane bezpośrednio)"
+
+  - name: Vue Reactivity Best Practices
+    description: Reaktywność musi być prawidłowo używana
+    condition:
+      include:
+        - "frontend/src/**/*.vue"
+        - "frontend/src/**/*.js"
+    checks:
+      - "Primitive values używają ref()"
+      - "Objects/arrays mogą używać reactive() lub ref()"
+      - "Accessing ref values używa .value w <script>"
+      - "Template automatic unwrapping ref values"
+      - "Destructuring reactive objects używa toRefs()"
+      - "Computed properties nie mają side effects"
+      - "Watch ma cleanup w return function jeśli potrzebny"
+
+  - name: Vue Router Best Practices
+    description: Vue Router musi być prawidłowo skonfigurowany
+    condition:
+      include:
+        - "frontend/src/router/**/*.js"
+        - "frontend/src/main.js"
+    checks:
+      - "Routes mają unique names"
+      - "Dynamic routes używają params"
+      - "Navigation guards są używane dla protected routes"
+      - "Lazy loading jest używany dla route components"
+      - "Router używa history mode (nie hash mode)"
+      - "404 route jest zdefiniowany"
+
+  - name: Vue Template Best Practices
+    description: Templates Vue muszą być czyste i wydajne
+    condition:
+      include:
+        - "frontend/src/**/*.vue"
+    checks:
+      - "v-for ma :key binding"
+      - "v-if i v-for nie są na tym samym elemencie"
+      - "Event handlers używają @click nie v-on:click"
+      - "Binding używa : nie v-bind:"
+      - "Brak złożonej logiki w template (przenieś do computed)"
+      - "Używa się v-show dla toggle visibility często, v-if dla conditional rendering"
+
+  # ============================================
+  # JAVASCRIPT / GENERAL FRONTEND RULES
+  # ============================================
+
+  - name: Modern JavaScript Standards
+    description: Kod JavaScript musi używać nowoczesnej składni
+    condition:
+      include:
+        - "frontend/src/**/*.js"
+        - "frontend/src/**/*.vue"
+    checks:
+      - "Używa się const i let zamiast var"
+      - "Arrow functions są preferowane"
+      - "Template literals zamiast string concatenation"
+      - "Destructuring jest używany gdzie to możliwe"
+      - "Async/await zamiast promise chains"
+      - "Optional chaining (?.) dla safe property access"
+      - "Nullish coalescing (??) zamiast ||"
+
+  - name: Axios API Service Standards
+    description: Komunikacja z API musi być prawidłowo zorganizowana
+    condition:
+      include:
+        - "frontend/src/services/**/*.js"
+    checks:
+      - "API calls są w osobnych service files"
+      - "Axios instance ma base URL configuration"
+      - "Interceptors są używane dla auth tokens"
+      - "Error handling jest centralizowany"
+      - "Loading states są zarządzane"
+      - "Używa się try/catch dla async calls"
+
+  - name: Error Handling Frontend
+    description: Błędy muszą być prawidłowo obsługiwane
+    condition:
+      include:
+        - "frontend/src/**/*.js"
+        - "frontend/src/**/*.vue"
+    checks:
+      - "Async functions mają try/catch"
+      - "Errors są logowane lub wyświetlane użytkownikowi"
+      - "API errors mają user-friendly messages"
+      - "Network errors są obsłużone"
+      - "Validation errors są wyświetlane przy formularzach"
+
+  # ============================================
+  # TAILWIND CSS RULES
+  # ============================================
+
+  - name: Tailwind CSS Best Practices
+    description: Tailwind musi być używany zgodnie z best practices
+    condition:
+      include:
+        - "frontend/src/**/*.vue"
+    checks:
+      - "Używa się utility classes zamiast custom CSS gdzie to możliwe"
+      - "Długie listy klas są rozbite na linie dla czytelności"
+      - "Responsive classes są używane prawidłowo (sm:, md:, lg:)"
+      - "Custom colors są w tailwind.config.js nie inline"
+      - "Używa się @apply tylko dla często powtarzanych kombinacji"
+      - "Purge/content configuration jest prawidłowe w tailwind.config.js"
+
+  # ============================================
+  # DOCKER & INFRASTRUCTURE RULES
+  # ============================================
+
+  - name: Dockerfile Best Practices
+    description: Dockerfiles muszą być zoptymalizowane
+    condition:
+      include:
+        - "**/Dockerfile"
+    checks:
+      - "Używa się multi-stage builds gdzie to możliwe"
+      - "Base image ma specific tag (nie latest)"
+      - "Layers są w prawidłowej kolejności (cache optimization)"
+      - "COPY package files przed kodem dla lepszego cache"
+      - "Używa się .dockerignore"
+      - "Nie kopiuje się niepotrzebnych files"
+      - "USER jest ustawiony (nie root)"
+
+  - name: Docker Compose Standards
+    description: Docker Compose musi być prawidłowo skonfigurowany
+    condition:
+      include:
+        - "docker-compose*.yml"
+    checks:
+      - "Version jest określona"
+      - "Services mają sensowne nazwy"
+      - "Networks są używane dla izolacji"
+      - "Volumes są używane dla persistence"
+      - "Environment variables są w .env lub environment section"
+      - "Health checks są zdefiniowane dla krytycznych services"
+      - "Depends_on jest używane dla zależności"
+
+  - name: Traefik Configuration
+    description: Traefik routing musi być bezpieczny i poprawny
+    condition:
+      include:
+        - "docker-compose*.yml"
+    checks:
+      - "Labels są prawidłowo sformatowane"
+      - "Routers mają unique names"
+      - "Services mają prawidłowy port"
+      - "Entry points są zdefiniowane"
+      - "HTTPS redirect jest skonfigurowany (production)"
+
+  # ============================================
+  # TESTING RULES
+  # ============================================
+
+  - name: Playwright E2E Tests Standards
+    description: Testy E2E muszą być niezawodne i maintainable
+    condition:
+      include:
+        - "e2e-tests/tests/**/*.spec.js"
+    checks:
+      - "Test names są opisowe"
+      - "Używa się page object model dla złożonych flows"
+      - "Selectors są stable (data-testid preferowane)"
+      - "Testy są niezależne od siebie"
+      - "Cleanup jest wykonywany po testach"
+      - "Assertions są konkretne i jasne"
+      - "Timeouts są rozsądne"
+
+  - name: Test Coverage Requirements
+    description: Kod musi mieć odpowiednie pokrycie testami
+    condition:
+      include:
+        - "backend/app/**/*.php"
+        - "frontend/src/**/*.vue"
+    checks:
+      - "Nowe features mają testy"
+      - "Critical paths mają E2E tests"
+      - "Business logic ma unit tests"
+      - "API endpoints mają feature tests"
+      - "Edge cases są testowane"
+
+  # ============================================
+  # SECURITY RULES
+  # ============================================
+
+  - name: Security Best Practices
+    description: Kod musi być bezpieczny
+    condition:
+      include:
+        - "**/*.php"
+        - "**/*.js"
+        - "**/*.vue"
+    checks:
+      - "Brak hardcoded passwords, API keys, secrets"
+      - "Sensitive data są w .env files"
+      - ".env files są w .gitignore"
+      - "User input jest walidowany przed użyciem"
+      - "XSS prevention - nie używa się v-html bez sanitization"
+      - "CSRF protection jest włączona"
+      - "SQL injection prevention - używa się prepared statements"
+
+  - name: Environment Variables
+    description: Environment variables muszą być prawidłowo zarządzane
+    condition:
+      include:
+        - "**/.env.example"
+        - "**/config/*.php"
+    checks:
+      - ".env.example jest up-to-date"
+      - "Wszystkie używane env vars są w .env.example"
+      - "Sensitive values w .env.example są placeholder"
+      - "Config files używają env() helper"
+
+  # ============================================
+  # GIT & CODE ORGANIZATION RULES
+  # ============================================
+
+  - name: Commit Message Standards
+    description: Commit messages muszą być opisowe
+    checks:
+      - "Subject line ma max 50 znaków"
+      - "Subject zaczyna się od wielkiej litery"
+      - "Subject jest w imperative mood (Add, Fix, Update, not Added, Fixed)"
+      - "Body wyjaśnia 'why' nie tylko 'what'"
+      - "References issue numbers jeśli applicable"
+
+  - name: Code Documentation
+    description: Kod musi być odpowiednio udokumentowany
+    condition:
+      include:
+        - "**/*.php"
+        - "**/*.js"
+        - "**/*.vue"
+    checks:
+      - "Public methods mają PHPDoc/JSDoc"
+      - "Complex logic ma komentarze wyjaśniające"
+      - "TODO comments mają autora i date"
+      - "Magic numbers mają wyjaśnienie"
+      - "API endpoints są udokumentowane"
+
+  - name: File Naming Conventions
+    description: Nazwy plików muszą być konsekwentne
+    checks:
+      - "Vue components: PascalCase.vue"
+      - "JavaScript files: camelCase.js lub kebab-case.js"
+      - "PHP files: PascalCase.php (dla klas)"
+      - "Migration files: YYYY_MM_DD_HHMMSS_description.php"
+      - "Test files: *Test.php lub *.spec.js"
+
+  # ============================================
+  # PERFORMANCE RULES
+  # ============================================
+
+  - name: Performance Best Practices
+    description: Kod musi być wydajny
+    condition:
+      include:
+        - "**/*.php"
+        - "**/*.js"
+        - "**/*.vue"
+    checks:
+      - "Brak N+1 queries (używaj eager loading)"
+      - "Large lists używają pagination"
+      - "Images są optymalizowane"
+      - "Vue components używają lazy loading gdzie to możliwe"
+      - "Używa się debounce/throttle dla expensive operations"
+      - "Database queries mają indexes"
+
+  - name: Bundle Size Optimization
+    description: Bundle size musi być rozsądny
+    condition:
+      include:
+        - "frontend/**/*.js"
+        - "frontend/**/*.vue"
+    checks:
+      - "Używa się dynamic imports dla route components"
+      - "Large libraries są importowane dynamicznie"
+      - "Brak import całych libraries (import tylko needed functions)"
+      - "Używa się tree-shaking"
+
+# ============================================
+# AUTOMATED CHECKS
+# ============================================
+
+automated_checks:
+  - name: PHP Linting
+    command: "cd backend && ./vendor/bin/pint --test"
+    on:
+      - pull_request
+      - push
+
+  - name: PHP Tests
+    command: "cd backend && php artisan test"
+    on:
+      - pull_request
+      - push
+
+  - name: E2E Tests
+    command: "cd e2e-tests && npm test"
+    on:
+      - pull_request
+      - push
+
+  - name: Build Check Frontend
+    command: "cd frontend && npm run build"
+    on:
+      - pull_request
+
+  - name: Docker Build Check
+    command: "docker compose build"
+    on:
+      - pull_request
+
+# ============================================
+# REVIEW CHECKLIST
+# ============================================
+
+review_checklist:
+  - category: "Functionality"
+    items:
+      - "Kod działa zgodnie z wymaganiami"
+      - "Edge cases są obsłużone"
+      - "Error handling jest prawidłowy"
+      - "Walidacja jest kompletna"
+
+  - category: "Code Quality"
+    items:
+      - "Kod jest czytelny i maintainable"
+      - "Nazwy zmiennych/funkcji są opisowe"
+      - "Brak code duplication"
+      - "Kompleksowa logika jest wydzielona do funkcji"
+
+  - category: "Testing"
+    items:
+      - "Testy są napisane i przechodzą"
+      - "Coverage jest wystarczający"
+      - "Testy są niezależne"
+
+  - category: "Documentation"
+    items:
+      - "Kod jest udokumentowany"
+      - "README jest zaktualizowany jeśli potrzebne"
+      - "API changes są udokumentowane"
+
+  - category: "Security"
+    items:
+      - "Brak security vulnerabilities"
+      - "Input validation jest prawidłowa"
+      - "Auth/authorization są sprawdzone"
+
+  - category: "Performance"
+    items:
+      - "Brak performance bottlenecks"
+      - "Database queries są zoptymalizowane"
+      - "Bundle size jest rozsądny"

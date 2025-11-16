@@ -157,6 +157,4 @@ Główny problem, jaki rozwiązuje aplikacja, to tendencja do zapominania o waż
 
 ## 6. Metryki sukcesu
 - 6.1. Wskaźnik adopcji szablonów: Przynajmniej 90% wszystkich nowo tworzonych wpisów w aplikacji musi korzystać z szablonu (wliczając w to domyślny szablon "Czysty wpis"). Pomiar będzie realizowany przez wewnętrzną analitykę aplikacji.
-- 6.2. Wskaźnik zaangażowania: Przynajmniej 25% aktywnych użytkowników stworzyło co najmniej jeden własny, niestandardowy szablon w ciągu pierwszego miesiąca od rejestracji. To pokaże, że kluczowa funkcja aplikacji jest zrozumiała i wartościowa.
-- 6.3. Retencja użytkowników: Utrzymanie retencji użytkowników na poziomie 40% po pierwszym tygodniu od rejestracji.
 ```
