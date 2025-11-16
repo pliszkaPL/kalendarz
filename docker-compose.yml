@@ -36,9 +36,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`kalendarz.loc`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=web"
-      - "traefik.http.services.backend.loadbalancer.server.port=9000"
-      - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api"
-      - "traefik.http.routers.backend.middlewares=backend-stripprefix"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+#      - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api"
+#      - "traefik.http.routers.backend.middlewares=backend-stripprefix"
     environment:
       - APP_ENV=production
       - APP_DEBUG=false

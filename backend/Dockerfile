@@ -1,4 +1,4 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.3-cli-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -37,8 +37,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Expose PHP-FPM port
-EXPOSE 9000
+# Expose HTTP port
+EXPOSE 8000
 
-# Run PHP-FPM in foreground
-CMD ["php-fpm", "-F"]
+# Start PHP built-in server on all interfaces
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "/var/www/html/public"]
