@@ -2,23 +2,18 @@ FROM php:8.3-fpm-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
-    nginx \
-    supervisor \
     sqlite \
-    sqlite-dev
+    sqlite-dev \
+    bash \
+    curl \
+    git \
+    unzip \
+    libzip-dev \
+    oniguruma-dev \
+    && docker-php-ext-install pdo pdo_sqlite zip mbstring
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_sqlite
-
-# Copy PHP-FPM configuration
+# Set PHP memory limit
 RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory.ini
-
-# Configure nginx
-RUN rm /etc/nginx/http.d/default.conf
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
-
-# Configure supervisor
-COPY docker/supervisord.conf /etc/supervisord.conf
 
 # Set working directory
 WORKDIR /var/www/html
@@ -27,21 +22,23 @@ WORKDIR /var/www/html
 COPY . .
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 
-# Create database directory
-RUN mkdir -p /var/www/html/database
-RUN touch /var/www/html/database/database.sqlite
-RUN chown -R www-data:www-data /var/www/html/database
-RUN chmod -R 775 /var/www/html/database
+# Create SQLite database file if it doesn't exist
+RUN mkdir -p /var/www/html/database \
+    && touch /var/www/html/database/database.sqlite \
+    && chown www-data:www-data /var/www/html/database/database.sqlite \
+    && chmod 664 /var/www/html/database/database.sqlite
 
 # Install composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install dependencies
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-EXPOSE 8000
+# Expose PHP-FPM port
+EXPOSE 9000
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+# Run PHP-FPM in foreground
+CMD ["php-fpm", "-F"]
