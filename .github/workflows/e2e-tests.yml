@@ -47,9 +47,10 @@ jobs:
 
       - name: Build and start services
         run: |
-          # Override docker socket for GitHub Actions (not rootless)
-          export XDG_RUNTIME_DIR=/var/run
           docker compose up -d --build
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
           
       - name: Wait for backend to be healthy
         run: |
@@ -70,10 +71,22 @@ jobs:
           echo "=== Frontend logs ==="
           docker compose logs frontend --tail 50
 
-      - name: Wait for services to be ready (through Traefik)
+      - name: Test backend directly (bypass Traefik)
         run: |
-          echo "Testing API through Traefik..."
-          timeout 60 bash -c 'until curl -f http://localhost/api/health 2>/dev/null; do echo "Waiting for API..."; sleep 2; done'
+          echo "Testing backend directly..."
+          BACKEND_IP=$(docker compose ps backend -q | xargs docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+          echo "Backend IP: $BACKEND_IP"
+          curl -v http://$BACKEND_IP:8000/api/health || echo "Direct backend test failed"
+          
+      - name: Test Traefik routing
+        run: |
+          echo "Testing Traefik configuration..."
+          curl -v http://localhost:8080/api/rawdata || echo "Traefik API not accessible"
+          
+      - name: Wait for services to be ready (through Traefik with Host header)
+        run: |
+          echo "Testing API through Traefik with Host header..."
+          timeout 60 bash -c 'until curl -f -H "Host: kalendarz.loc" http://localhost/api/health 2>/dev/null; do echo "Waiting for API..."; sleep 2; done'
           echo "API is ready!"
 
       - name: Set up Node.js
