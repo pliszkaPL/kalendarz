@@ -57,6 +57,35 @@ destroy: ### Stop containers and remove volumes
 	$(DC) down -v
 
 # =============================================================================
+# Development
+# =============================================================================
+
+.PHONY: dev dev-up dev-start
+dev dev-up dev-start: ### Start development environment with hot reload
+	$(DC) -f docker-compose.dev.yml up -d
+
+.PHONY: dev-logs
+dev-logs: ### Show development logs
+	$(DC) -f docker-compose.dev.yml logs -f
+
+.PHONY: dev-down dev-stop
+dev-down dev-stop: ### Stop development environment
+	$(DC) -f docker-compose.dev.yml down
+
+.PHONY: dev-restart
+dev-restart: ### Restart development environment
+	$(DC) -f docker-compose.dev.yml restart
+
+.PHONY: dev-build
+dev-build: ### Rebuild development containers
+	$(DC) -f docker-compose.dev.yml build --no-cache
+
+.PHONY: dev-rebuild
+dev-rebuild: ### Rebuild and restart development
+	$(DC) -f docker-compose.dev.yml build --no-cache
+	$(DC) -f docker-compose.dev.yml up -d
+
+# =============================================================================
 # Status / Logs
 # =============================================================================
 
@@ -189,6 +218,15 @@ setup install: ### Full project setup (build + start + migrate)
 setup-e2e install-e2e: ### Install E2E test dependencies
 	cd e2e-tests && npm install
 	cd e2e-tests && npx playwright install chromium
+
+.PHONY: install-frontend npm-install
+install-frontend npm-install: ### Install frontend dependencies
+	cd frontend && npm install
+
+.PHONY: install-all
+install-all: ### Install all dependencies (frontend + e2e)
+	cd frontend && npm install
+	cd e2e-tests && npm install
 
 # =============================================================================
 # Git

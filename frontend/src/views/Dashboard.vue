@@ -23,10 +23,23 @@
         <p class="text-gray-600 mb-4">
           Hello, {{ userName }}! You are successfully logged in.
         </p>
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
           <p class="text-blue-700">
             This is your personal dashboard. More features coming soon!
           </p>
+        </div>
+        
+        <div class="mt-6">
+          <h3 class="text-xl font-semibold text-gray-900 mb-4">Quick Links</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <router-link
+              to="/calendar"
+              class="block p-6 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition"
+            >
+              <h4 class="text-lg font-semibold mb-2">📅 Calendar</h4>
+              <p class="text-blue-100">View and manage your calendar</p>
+            </router-link>
+          </div>
         </div>
       </div>
     </main>

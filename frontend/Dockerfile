@@ -1,8 +1,28 @@
 # Frontend Dockerfile - Vue.js 3 SPA
 # Multi-stage build
 
+# Development stage
+FROM node:22.12.0-alpine3.21 AS dev
+
+WORKDIR /app
+
+# Copy package files for better caching
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source files
+COPY . .
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Run dev server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
 # Build stage
-FROM node:20.18.1-alpine3.21 AS build
+FROM node:22.12.0-alpine3.21 AS build
 
 WORKDIR /app
 
