@@ -46,9 +46,18 @@ test.describe('Smoke Tests - Critical Path', () => {
     // Debug: Check what's on the page
     const title = await page.title();
     console.log('Page title:', title);
-    
-    // Wait for Vue to mount first
-    await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 5000 });
+
+    // Wait for Vue to mount first - with debug output on failure
+    try {
+      await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 10000 });
+    } catch (e) {
+      const content = await page.content();
+      console.log('=== DEBUG: Page HTML when h1 not found ===');
+      console.log(content.substring(0, 3000));
+      console.log('=== END DEBUG ===');
+      console.log('Console errors:', errors);
+      throw e;
+    }
 
     // Click Register tab to show registration form
     await page.click('button:has-text("Register")');
@@ -87,7 +96,17 @@ test.describe('Smoke Tests - Critical Path', () => {
     // Navigate and wait for app
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 5000 });
+
+    // Wait for Vue to mount first - with debug output on failure
+    try {
+      await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 10000 });
+    } catch (e) {
+      const content = await page.content();
+      console.log('=== DEBUG: Page HTML when h1 not found ===');
+      console.log(content.substring(0, 3000));
+      console.log('=== END DEBUG ===');
+      throw e;
+    }
 
     // Click Register tab
     await page.click('button:has-text("Register")');
@@ -132,7 +151,17 @@ test.describe('Smoke Tests - Critical Path', () => {
     // Navigate and wait for app
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 5000 });
+
+    // Wait for Vue to mount first - with debug output on failure
+    try {
+      await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 10000 });
+    } catch (e) {
+      const content = await page.content();
+      console.log('=== DEBUG: Page HTML when h1 not found ===');
+      console.log(content.substring(0, 3000));
+      console.log('=== END DEBUG ===');
+      throw e;
+    }
 
     // Click Register tab
     await page.click('button:has-text("Register")');
