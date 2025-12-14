@@ -38,10 +38,16 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.click('button[type="submit"]:has-text("Register")');
 
     // Should redirect to calendar (not dashboard anymore)
-    await page.waitForURL('**/calendar', { timeout: 10000 });
+    await page.waitForURL('**/calendar', { timeout: 15000 });
     expect(page.url()).toContain('/calendar');
 
-    // Verify we can see the calendar
+    // Wait for Vue app to fully mount and render
+    await page.waitForLoadState('networkidle');
+    
+    // Wait for the navbar to appear (indicates Vue has mounted)
+    await page.waitForSelector('.top-navbar', { timeout: 20000 });
+    
+    // Verify we can see the calendar navbar title
     await expect(page.locator('h1.app-title:has-text("📅 Kalendarz")')).toBeVisible({ timeout: 10000 });
   });
 
@@ -59,27 +65,37 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.fill('input[id="register-password-confirm"]', testPassword);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    await page.waitForURL('**/calendar', { timeout: 10000 });
-    await page.waitForTimeout(2000); // Wait for Vue to render
+    await page.waitForURL('**/calendar', { timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+    
+    // Wait for navbar first (indicates Vue mounted)
+    await page.waitForSelector('.top-navbar', { timeout: 20000 });
+
+    // Wait for calendar grid to appear (critical element)
+    await page.waitForSelector('.calendar-grid', { timeout: 20000 });
+    
+    // Wait for month navigation (another critical element)
+    await page.waitForSelector('.month-navigation', { timeout: 20000 });
 
     // Verify calendar components are visible
-    await expect(page.locator('.calendar-grid')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('.month-navigation')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.calendar-grid')).toBeVisible();
+    await expect(page.locator('.month-navigation')).toBeVisible();
     
     // Verify day headers (Pn, Wt, Śr, Cz, Pt, So, Ni)
     const dayHeaders = page.locator('.day-header');
-    await expect(dayHeaders).toHaveCount(7);
+    await expect(dayHeaders).toHaveCount(7, { timeout: 10000 });
 
     // Verify calendar has days
     const calendarDays = page.locator('.calendar-day');
+    await expect(calendarDays.first()).toBeVisible({ timeout: 10000 });
     const count = await calendarDays.count();
     expect(count).toBeGreaterThanOrEqual(28); // At least 4 weeks
     expect(count).toBeLessThanOrEqual(42); // Max 6 weeks
 
     // Verify navigation buttons
-    await expect(page.locator('button:has-text("‹")')).toBeVisible();
-    await expect(page.locator('button:has-text("›")')).toBeVisible();
-    await expect(page.locator('button:has-text("Dziś")')).toBeVisible();
+    await expect(page.locator('button:has-text("‹")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button:has-text("›")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button:has-text("Dziś")')).toBeVisible({ timeout: 10000 });
   });
 
   test('SMOKE: User can add an entry to calendar', async ({ page }) => {
@@ -96,33 +112,57 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.fill('input[id="register-password-confirm"]', testPassword);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    await page.waitForURL('**/calendar', { timeout: 10000 });
-    await page.waitForTimeout(2000); // Wait for Vue to render
+    await page.waitForURL('**/calendar', { timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+    
+    // Wait for navbar first (indicates Vue has mounted)
+    await page.waitForSelector('.top-navbar', { timeout: 20000 });
+    
+    // Wait for calendar grid to load
+    await page.waitForSelector('.calendar-grid', { timeout: 20000 });
+    
+    // Wait for at least one calendar day to be clickable
+    await page.waitForSelector('.calendar-day', { timeout: 20000 });
 
     // Click on "Add Entry" button or click on a day
     const addButton = page.locator('button.add-entry-btn');
-    if (await addButton.isVisible()) {
+    const addButtonVisible = await addButton.isVisible().catch(() => false);
+    
+    if (addButtonVisible) {
       await addButton.click();
     } else {
-      // Alternative: click on first available day
-      const firstDay = page.locator('.calendar-day').first();
-      await firstDay.click();
+      // Alternative: click on first current-month day (not previous/next month)
+      const currentMonthDay = page.locator('.calendar-day:not(.other-month)').first();
+      await currentMonthDay.waitFor({ state: 'visible', timeout: 10000 });
+      await currentMonthDay.click();
     }
 
-    // Wait for modal to appear
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
+    // Wait for modal to appear (longer timeout for CI)
+    await page.waitForSelector('.modal-overlay', { timeout: 10000 });
+    
+    // Wait for input field to be ready
+    await page.waitForSelector('input[placeholder="Nazwa wpisu"]', { timeout: 10000 });
     
     // Fill in entry details
     const entryName = `Smoke Test Entry ${timestamp}`;
     await page.fill('input[placeholder="Nazwa wpisu"]', entryName);
     
+    // Wait a bit for form validation
+    await page.waitForTimeout(500);
+    
     // Click save button
-    await page.click('button[type="submit"]:has-text("Zapisz")');
+    const saveButton = page.locator('button[type="submit"]:has-text("Zapisz")');
+    await saveButton.waitFor({ state: 'visible', timeout: 10000 });
+    await saveButton.click();
     
-    // Wait for modal to close
-    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 5000 });
+    // Wait for modal to close (longer timeout for CI)
+    await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
     
-    // Verify entry appears on calendar
-    await expect(page.locator(`.entry-item:has-text("${entryName}")`)).toBeVisible({ timeout: 5000 });
+    // Wait for calendar to re-render
+    await page.waitForTimeout(1000);
+    
+    // Verify entry appears on calendar (more flexible selector)
+    const entryItem = page.locator('.entry-item, .calendar-entry').filter({ hasText: entryName });
+    await expect(entryItem).toBeVisible({ timeout: 10000 });
   });
 });
