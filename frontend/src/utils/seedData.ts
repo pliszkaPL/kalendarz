@@ -73,6 +73,9 @@ export function seedData() {
   entriesStore.addEntry({
     name: 'Urodziny Mamy',
     date: createDate(15),
+    icon: birthdayTemplate.icon,
+    backgroundColor: birthdayTemplate.backgroundColor,
+    textColor: birthdayTemplate.textColor,
     templateId: birthdayTemplate.id,
     groupId: familyGroup.id,
     tags: ['urodziny', 'ważne'],
@@ -88,6 +91,9 @@ export function seedData() {
   entriesStore.addEntry({
     name: 'Urodziny Jana',
     date: createDate(22),
+    icon: birthdayTemplate.icon,
+    backgroundColor: birthdayTemplate.backgroundColor,
+    textColor: birthdayTemplate.textColor,
     templateId: birthdayTemplate.id,
     groupId: friendsGroup.id,
     tags: ['urodziny'],
@@ -103,6 +109,9 @@ export function seedData() {
   entriesStore.addEntry({
     name: 'Urodziny Asi',
     date: createDate(8, 1), // next month
+    icon: birthdayTemplate.icon,
+    backgroundColor: birthdayTemplate.backgroundColor,
+    textColor: birthdayTemplate.textColor,
     templateId: birthdayTemplate.id,
     groupId: friendsGroup.id,
     tags: ['urodziny'],
@@ -119,6 +128,9 @@ export function seedData() {
   entriesStore.addEntry({
     name: 'Rocznica ślubu',
     date: createDate(10),
+    icon: anniversaryTemplate.icon,
+    backgroundColor: anniversaryTemplate.backgroundColor,
+    textColor: anniversaryTemplate.textColor,
     templateId: anniversaryTemplate.id,
     groupId: familyGroup.id,
     tags: ['rocznica', 'ważne'],
@@ -134,6 +146,9 @@ export function seedData() {
   entriesStore.addEntry({
     name: 'Spotkanie zespołu',
     date: createDate(18),
+    icon: reminderTemplate.icon,
+    backgroundColor: reminderTemplate.backgroundColor,
+    textColor: reminderTemplate.textColor,
     templateId: reminderTemplate.id,
     groupId: workGroup.id,
     tags: ['praca', 'spotkanie'],
@@ -148,6 +163,9 @@ export function seedData() {
   entriesStore.addEntry({
     name: 'Wizyta u dentysty',
     date: createDate(25),
+    icon: reminderTemplate.icon,
+    backgroundColor: reminderTemplate.backgroundColor,
+    textColor: reminderTemplate.textColor,
     templateId: reminderTemplate.id,
     groupId: null,
     tags: ['zdrowie'],
@@ -162,6 +180,9 @@ export function seedData() {
   entriesStore.addEntry({
     name: 'Płatność rachunków',
     date: createDate(1, 1), // next month
+    icon: reminderTemplate.icon,
+    backgroundColor: reminderTemplate.backgroundColor,
+    textColor: reminderTemplate.textColor,
     templateId: reminderTemplate.id,
     groupId: null,
     tags: ['finanse', 'ważne'],
@@ -180,6 +201,9 @@ export function seedData() {
   entriesStore.addEntry({
     name: 'Dzień Dziecka',
     date: createDate(1, 5), // June 1st
+    icon: reminderTemplate.icon,
+    backgroundColor: reminderTemplate.backgroundColor,
+    textColor: reminderTemplate.textColor,
     templateId: reminderTemplate.id,
     groupId: familyGroup.id,
     tags: ['święto'],

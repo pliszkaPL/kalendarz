@@ -37,7 +37,17 @@ build-cache: ### Build Docker images (with cache)
 # =============================================================================
 
 .PHONY: run up start
-run up start: ### Start all services in background
+run up start: ### Start all services in background (production)
+	@echo "🔍 Checking for dev containers..."
+	@if docker ps --filter "name=kalendarz-frontend-dev-1" --format "{{.Names}}" | grep -q "kalendarz-frontend-dev-1"; then \
+		echo "⚠️  WARNING: Dev containers are running!"; \
+		echo "⚠️  This will cause conflicts (production won't work)"; \
+		echo ""; \
+		echo "Run: make dev-down   # to stop dev first"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo "✅ No conflicts detected, starting production..."
 	$(DC) up -d
 
 .PHONY: run-logs up-logs
@@ -62,6 +72,16 @@ destroy: ### Stop containers and remove volumes
 
 .PHONY: dev dev-up dev-start
 dev dev-up dev-start: ### Start development environment with hot reload
+	@echo "🔍 Checking for production containers..."
+	@if docker ps --filter "name=kalendarz-frontend-1" --format "{{.Names}}" | grep -q "kalendarz-frontend-1"; then \
+		echo "⚠️  WARNING: Production containers are running!"; \
+		echo "⚠️  This will cause conflicts (dev won't work in browser)"; \
+		echo ""; \
+		echo "Run: make down   # to stop production first"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo "✅ No conflicts detected, starting dev environment..."
 	$(DC) -f docker-compose.dev.yml up -d
 
 .PHONY: dev-logs
@@ -84,6 +104,35 @@ dev-build: ### Rebuild development containers
 dev-rebuild: ### Rebuild and restart development
 	$(DC) -f docker-compose.dev.yml build --no-cache
 	$(DC) -f docker-compose.dev.yml up -d
+
+.PHONY: which-env env-status
+which-env env-status: ### Check which environment is running
+	@echo "🔍 Checking environment status..."
+	@echo ""
+	@PROD=$$(docker ps --filter "name=kalendarz-frontend-1" --format "{{.Names}}" 2>/dev/null | grep -c "kalendarz-frontend-1" || true); \
+	DEV=$$(docker ps --filter "name=kalendarz-frontend-dev-1" --format "{{.Names}}" 2>/dev/null | grep -c "kalendarz-frontend-dev-1" || true); \
+	if [ "$${PROD}" != "0" ] && [ "$${DEV}" != "0" ]; then \
+		echo "⚠️  CONFLICT: Both production AND dev are running!"; \
+		echo "⚠️  This causes issues - stop one of them:"; \
+		echo "     make down      # Stop production"; \
+		echo "     make dev-down  # Stop dev"; \
+	elif [ "$${PROD}" != "0" ]; then \
+		echo "✅ Production environment is running"; \
+		echo "   URL: http://kalendarz.loc"; \
+		echo ""; \
+		echo "   To switch to dev: make down && make dev"; \
+	elif [ "$${DEV}" != "0" ]; then \
+		echo "✅ Development environment is running"; \
+		echo "   URL: http://kalendarz.loc (with hot reload)"; \
+		echo ""; \
+		echo "   To switch to prod: make dev-down && make up"; \
+	else \
+		echo "ℹ️  No environment is running"; \
+		echo ""; \
+		echo "   Start dev:  make dev"; \
+		echo "   Start prod: make up"; \
+	fi
+	@echo ""
 
 # =============================================================================
 # Status / Logs

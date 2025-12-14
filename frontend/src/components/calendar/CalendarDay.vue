@@ -6,6 +6,7 @@
       'today': isToday,
       'has-entries': dayEntries.length > 0
     }"
+    @click="onDayClick"
   >
     <div class="day-number">{{ dayNumber }}</div>
     
@@ -15,12 +16,12 @@
         :key="entry.id"
         class="entry-item"
         :style="{
-          backgroundColor: getEntryColor(entry),
-          color: getEntryTextColor(entry)
+          backgroundColor: entry.backgroundColor,
+          color: entry.textColor
         }"
-        @click="onEntryClick(entry)"
+        @click.stop="onEntryClick(entry)"
       >
-        <span class="entry-icon">{{ getEntryIcon(entry) }}</span>
+        <span class="entry-icon">{{ entry.icon }}</span>
         <span class="entry-name">{{ entry.name }}</span>
       </div>
       
@@ -32,9 +33,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import type { Entry } from '../../types'
-import { useTemplatesStore } from '../../stores/templates'
 
 interface Props {
   date: Date
@@ -48,11 +48,8 @@ const props = withDefaults(defineProps<Props>(), {
   maxDisplayed: 3
 })
 
-const emit = defineEmits<{
-  entryClick: [entry: Entry]
-}>()
-
-const templatesStore = useTemplatesStore()
+const openAddEntryForDate = inject<(date: string) => void>('openAddEntryForDate')
+const openEditEntryModal = inject<(entry: Entry) => void>('openEditEntryModal')
 
 const dayNumber = computed(() => props.date.getDate())
 
@@ -75,24 +72,18 @@ const remainingCount = computed(() =>
   Math.max(0, dayEntries.value.length - props.maxDisplayed)
 )
 
-function getEntryColor(entry: Entry): string {
-  const template = templatesStore.getTemplateById(entry.templateId)
-  return template?.backgroundColor || '#74b9ff'
-}
-
-function getEntryTextColor(entry: Entry): string {
-  const template = templatesStore.getTemplateById(entry.templateId)
-  return template?.textColor || '#ffffff'
-}
-
-function getEntryIcon(entry: Entry): string {
-  const template = templatesStore.getTemplateById(entry.templateId)
-  return template?.icon || '📝'
+function onDayClick() {
+  // Format date as YYYY-MM-DD
+  const year = props.date.getFullYear()
+  const month = String(props.date.getMonth() + 1).padStart(2, '0')
+  const day = String(props.date.getDate()).padStart(2, '0')
+  const dateString = `${year}-${month}-${day}`
+  
+  openAddEntryForDate?.(dateString)
 }
 
 function onEntryClick(entry: Entry) {
-  emit('entryClick', entry)
-  console.log('Entry clicked:', entry)
+  openEditEntryModal?.(entry)
 }
 </script>
 
@@ -103,11 +94,13 @@ function onEntryClick(entry: Entry) {
   border: 1px solid #e5e7eb;
   background: white;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .calendar-day:hover {
   background: #f9fafb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
 }
 
 .calendar-day.other-month {

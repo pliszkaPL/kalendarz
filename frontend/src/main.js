@@ -23,7 +23,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !token) {
     next('/')
   } else if (to.path === '/' && token) {
-    next('/dashboard')
+    next('/calendar')
   } else {
     next()
   }

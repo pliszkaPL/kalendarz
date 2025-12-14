@@ -15,20 +15,26 @@ export interface Entry {
   name: string
   /** Data wpisu w formacie ISO (YYYY-MM-DD) */
   date: string
+  /** Ikona wpisu (emoji) */
+  icon: string
+  /** Kolor tła wpisu (hex, np. #ff6b6b) */
+  backgroundColor: string
+  /** Kolor tekstu wpisu (hex, np. #ffffff) */
+  textColor: string
   /** ID szablonu używanego przez wpis */
-  templateId: string
+  templateId?: string
   /** ID grupy (null jeśli bez grupy) */
-  groupId: string | null
+  groupId?: string | null
   /** Lista tagów */
-  tags: string[]
+  tags?: string[]
   /** Opis wpisu */
-  description: string
+  description?: string
   /** Reguła powtarzania (null dla pojedynczych wpisów) */
-  recurrence: RecurrenceRule | null
+  recurrence?: RecurrenceRule | null
   /** Dane niestandardowe dla zmiennych szablonu */
-  customData: Record<string, unknown>
+  customData?: Record<string, unknown>
   /** Czy wpis jest zarchiwizowany */
-  isArchived: boolean
+  isArchived?: boolean
   /** Data utworzenia */
   createdAt: string
   /** Data ostatniej modyfikacji */

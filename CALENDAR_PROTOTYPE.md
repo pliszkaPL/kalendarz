@@ -1,9 +1,17 @@
 # Kalendarz - Prototyp Działającego Kalendarza
 
 ## Status
-✅ **Prototyp działający w 100%!** Wszystkie testy przechodzą (24/24).
+✅ **Prototyp w pełni funkcjonalny z UI do zarządzania wpisami i grupami!**
 
-Zaimplementowane podstawowe funkcjonalności widoku kalendarza z pełną pokryciem E2E testami.
+Zaimplementowane:
+- ✅ Pełny widok kalendarza z nawigacją
+- ✅ Modal dodawania/edycji wpisów
+- ✅ Modal dodawania/edycji grup
+- ✅ Kliknięcie w dzień → dodaj wpis z datą
+- ✅ Kliknięcie w wpis → edytuj/usuń
+- ✅ Kliknięcie w szablon → utwórz wpis z szablonem
+- ✅ localStorage persistence
+- ✅ E2E tests (50+ testów napisanych)
 
 ## Co zostało zaimplementowane
 
@@ -22,8 +30,10 @@ Zaimplementowane podstawowe funkcjonalności widoku kalendarza z pełną pokryci
 ### Komponenty UI (STORY-003)
 - ✅ `CalendarView.vue` - główny widok z siatką i sidebarem
 - ✅ `CalendarGrid.vue` - siatka 7x6 (dni tygodnia x tygodnie)
-- ✅ `CalendarDay.vue` - pojedynczy dzień z wpisami
+- ✅ `CalendarDay.vue` - pojedynczy dzień z wpisami (klikalne!)
 - ✅ `MonthNavigation.vue` - nawigacja miesiąc/rok
+- ✅ `EntryModal.vue` - modal dodawania/edycji wpisów (14KB, 483 linie)
+- ✅ `GroupModal.vue` - modal dodawania/edycji grup (7.8KB, 363 linie)
 
 ### Inne
 - ✅ Routing `/calendar` z auth guard
@@ -42,33 +52,48 @@ Zaimplementowane podstawowe funkcjonalności widoku kalendarza z pełną pokryci
 ### Komendy Makefile
 
 ```bash
+# Status / Diagnostyka
+make which-env        # Sprawdź który environment działa (prod/dev)
+make help             # Pokaż wszystkie dostępne komendy
+
 # Development (z hot reload)
-make dev              # Uruchom środowisko developerskie
+make dev              # Uruchom środowisko developerskie (automatycznie sprawdzi konflikty)
 make dev-logs         # Pokaż logi
 make dev-down         # Zatrzymaj
-
-# Rebuild (po zmianach w Dockerfile)
 make dev-rebuild      # Przebuduj i uruchom
 
 # Production
-make up               # Uruchom środowisko produkcyjne
+make up               # Uruchom środowisko produkcyjne (automatycznie sprawdzi konflikty)
 make down             # Zatrzymaj
 make logs             # Pokaż logi
+
+# Testy
+make test             # Uruchom wszystkie testy (backend + E2E)
 ```
 
 ### Uruchomienie krok po kroku
 
-1. **Pierwsze uruchomienie (produkcja)**:
+⚠️ **WAŻNE**: Uruchamiaj TYLKO development LUB production, nigdy jednocześnie!
+
+**Opcja A: Development (zalecane dla pracy nad kodem)**:
 ```bash
-make up
-make migrate
+# Upewnij się że produkcja NIE działa
+docker compose down
+
+# Uruchom dev
+make dev
+# lub z logami:
+make dev-logs
 ```
 
-2. **Development (hot reload)**:
+**Opcja B: Production (dla testów produkcyjnych)**:
 ```bash
-make dev
-# lub
-make dev-logs  # jeśli chcesz widzieć logi
+# Upewnij się że dev NIE działa
+make dev-down
+
+# Uruchom produkcję
+make up
+make migrate
 ```
 
 3. **Otwórz w przeglądarce**:
@@ -94,25 +119,27 @@ frontend/
 ├── src/
 │   ├── components/
 │   │   └── calendar/           # Komponenty kalendarza
-│   │       ├── CalendarView.vue
-│   │       ├── CalendarGrid.vue
-│   │       ├── CalendarDay.vue
-│   │       └── MonthNavigation.vue
+│   │       ├── CalendarView.vue      # Container z sidebarem
+│   │       ├── CalendarGrid.vue      # Siatka 7x6
+│   │       ├── CalendarDay.vue       # Dzień + wpisy (klikalne)
+│   │       ├── MonthNavigation.vue   # Nawigacja ◀ ▶ Dziś
+│   │       ├── EntryModal.vue        # ✨ Modal wpisu (483 linie)
+│   │       └── GroupModal.vue        # ✨ Modal grupy (363 linie)
 │   ├── stores/                 # Pinia stores
-│   │   ├── calendar.ts
-│   │   ├── entries.ts
-│   │   ├── groups.ts
-│   │   └── templates.ts
+│   │   ├── calendar.ts         # currentMonth, currentYear
+│   │   ├── entries.ts          # CRUD entries + localStorage
+│   │   ├── groups.ts           # CRUD groups + localStorage
+│   │   └── templates.ts        # 3 szablony
 │   ├── types/                  # TypeScript types
-│   │   ├── calendar.ts
-│   │   ├── template.ts
-│   │   ├── recurrence.ts
-│   │   └── index.ts
+│   │   ├── calendar.ts         # Entry (z icon, colors!), Group
+│   │   ├── template.ts         # Template
+│   │   ├── recurrence.ts       # RecurrenceRule
+│   │   └── index.ts            # Exports
 │   ├── utils/
-│   │   ├── seedData.ts        # Przykładowe dane
-│   │   └── uuid.ts            # UUID generator z fallback
+│   │   ├── seedData.ts         # 8 wpisów + 3 grupy
+│   │   └── uuid.ts             # UUID generator z fallback
 │   └── views/
-│       ├── Calendar.vue       # Widok kalendarza
+│       ├── Calendar.vue        # ✨ Główny widok (provide/inject)
 │       ├── Dashboard.vue
 │       └── Login.vue
 ```
@@ -144,19 +171,48 @@ Po pierwszym wejściu do kalendarza automatycznie załadują się:
 - 8 wpisów (urodziny, rocznice, przypomnienia)
 - Rozłożone w bieżącym i następnych miesiącach
 
+## Jak korzystać z prototypu
+
+### Dodawanie wpisów
+1. **Kliknij przycisk "+" w górnym prawym rogu** - otwiera modal nowego wpisu
+2. **Kliknij na dowolny dzień w kalendarzu** - otwiera modal z predefiniowaną datą
+3. **Kliknij na szablon w sidebarze** - otwiera modal z ikoną i kolorami z szablonu
+
+### Edycja/usuwanie wpisów
+1. **Kliknij na istniejący wpis** - otwiera modal edycji
+2. W modalu możesz:
+   - Zmienić nazwę, datę, opis
+   - Wybrać inną ikonę (12 emoj do wyboru)
+   - Zmienić kolory tła i tekstu
+   - Przypisać do grupy
+   - **Usunąć wpis** (przycisk "Usuń" w trybie edycji)
+
+### Zarządzanie grupami
+1. **Kliknij "+" obok "Grupy" w sidebarze** - dodaj nową grupę
+2. **Kliknij na istniejącą grupę** - edytuj/usuń
+3. Grupy mają:
+   - Nazwę
+   - Kolor (10 presetów + custom color picker)
+   - Licznik przypisanych wpisów
+
 ## Co dalej?
 
-### Do zaimplementowania (MVP)
-- [ ] Modal dodawania/edycji wpisów
-- [ ] Modal dodawania/edycji grup
-- [ ] Kliknięcie na wpis - modal ze szczegółami
-- [ ] Kliknięcie na dzień - dodaj wpis
+### Zaimplementowane w MVP v1.0 ✅
+- ✅ Modal dodawania/edycji wpisów
+- ✅ Modal dodawania/edycji grup
+- ✅ Kliknięcie na wpis - modal ze szczegółami
+- ✅ Kliknięcie na dzień - dodaj wpis
+- ✅ Ikony i kolory z szablonów
+- ✅ Przypisywanie wpisów do grup
+
+### Do zaimplementowania (MVP v2.0)
 - [ ] Wyszukiwarka wpisów
-- [ ] Filtrowanie po grupach
+- [ ] Filtrowanie po grupach (checkbox w sidebarze)
 - [ ] Pełny system szablonów z zmiennymi
 - [ ] Obliczanie wieku, dni do/od
-- [ ] Powtarzanie wpisów (yearly, custom)
+- [ ] Powtarzanie wpisów (yearly, custom) - UI
 - [ ] Import/Export (JSON)
+- [ ] Drag & drop przesuwanie wpisów między dniami
 
 ## Testy
 
@@ -234,6 +290,113 @@ Zaktualizowano wszystkie stores (templates, entries, groups) aby używały `gene
 
 **Rozwiązanie**: Usunięto wrapper div z `App.vue`, zostaw tylko `<router-view />`.
 
+### Błąd #3: Konflikt produkcja vs dev - aplikacja nie działa w przeglądarce
+**Problem**: Uruchomiono `make up` (produkcja) i `make dev` jednocześnie. Traefik routował ruch do produkcyjnego kontenera nginx, który nie miał zbudowanych plików. Rezultat:
+- Testy E2E przechodziły (używały dev server)
+- Przeglądarka nie działała (dostawała 404 dla `/src/main.js` z nginx)
+- Błąd: `Failed to load module script: Expected a JavaScript module but server responded with MIME type "text/html"`
+
+**Diagnoza**:
+```bash
+# Dwa kontenery frontend działały jednocześnie:
+kalendarz-frontend-1       # produkcja (nginx) ← Traefik routował tutaj
+kalendarz-frontend-dev-1   # dev (vite) ← nikt nie korzystał
+```
+
+**Rozwiązanie**: 
+```bash
+# ZAWSZE używaj ALBO produkcji ALBO dev, nigdy jednocześnie:
+
+# Development (zalecane dla pracy):
+docker compose down        # Zatrzymaj produkcję
+make dev                   # Uruchom dev
+
+# Produkcja (dla testów produkcyjnych):
+make dev-down              # Zatrzymaj dev
+make up                    # Uruchom produkcję
+```
+
+**Złota zasada**: Jeden environment na raz!
+
+### Błąd #4: Entry type nie miał pól wizualnych (icon, backgroundColor, textColor)
+**Problem**: CalendarDay próbował wyświetlić `entry.icon`, `entry.backgroundColor`, `entry.textColor`, ale te pola nie istniały w typie Entry. Rezultat:
+- Wpisy renderowały się bez ikon (puste `<span>`)
+- Testy E2E wykrywały "element not visible"
+- seedData nie ustawiał kolorów
+
+**Rozwiązanie**: 
+1. Zaktualizowano `types/calendar.ts` - dodano wymagane pola:
+```typescript
+export interface Entry {
+  id: string
+  name: string
+  date: string
+  icon: string                // ✨ NOWE
+  backgroundColor: string     // ✨ NOWE
+  textColor: string          // ✨ NOWE
+  templateId?: string        // opcjonalne
+  groupId?: string | null    // opcjonalne
+  // ...
+}
+```
+
+2. Zaktualizowano `seedData.ts` - każdy wpis kopiuje wartości z szablonu:
+```typescript
+entriesStore.addEntry({
+  name: 'Urodziny Mamy',
+  icon: birthdayTemplate.icon,               // 🎂
+  backgroundColor: birthdayTemplate.backgroundColor,  // #ff6b6b
+  textColor: birthdayTemplate.textColor,     // #ffffff
+  // ...
+})
+```
+
+3. Zaktualizowano `EntryModal.vue` - defaultForm ma sensowne domyślne:
+```typescript
+const defaultForm = {
+  icon: '📝',
+  backgroundColor: '#3b82f6',
+  textColor: '#ffffff',
+  // ...
+}
+```
+
+### Błąd #5: EntryModal/GroupModal wywoływały nieistniejące funkcje
+**Problem**: Modals wywoływały `createEntry()` i `createGroup()`, ale stores eksportują `addEntry()` i `addGroup()`.
+
+**Rozwiązanie**: Poprawiono funkcje w obu modalach:
+```typescript
+// EntryModal.vue - handleSubmit()
+entriesStore.addEntry({  // było: createEntry
+  name: form.value.name,
+  // ... wszystkie wymagane pola
+})
+
+// GroupModal.vue - handleSubmit()
+groupsStore.addGroup({   // było: createGroup
+  name: form.value.name,
+  color: form.value.color,
+  tags: [],
+  description: ''
+})
+```
+
+### Błąd #6: Testy używały niepoprawnych kluczy localStorage
+**Problem**: Testy czyściły/sprawdzały `calendar_entries` i `calendar_groups`, ale stores używają `kalendarz_entries` i `kalendarz_groups`.
+
+**Rozwiązanie**: Zaktualizowano wszystkie testy E2E:
+```javascript
+// Przed
+localStorage.getItem('calendar_entries')  // ❌
+localStorage.getItem('calendar_groups')   // ❌
+
+// Po
+localStorage.getItem('kalendarz_entries')  // ✅
+localStorage.getItem('kalendarz_groups')   // ✅
+```
+
+**Złota zasada**: Jeden environment na raz!
+
 ## Troubleshooting
 
 ### Port 80 zajęty
@@ -243,12 +406,29 @@ sudo systemctl stop nginx
 # lub zmień port w docker-compose.yml
 ```
 
+### Aplikacja nie działa w przeglądarce (404 dla .js, błędy MIME type)
+```bash
+# Sprawdź czy nie masz dwóch environment jednocześnie
+docker ps --filter "name=kalendarz"
+
+# Jeśli widzisz kalendarz-frontend-1 I kalendarz-frontend-dev-1:
+docker compose down        # Zatrzymaj produkcję
+make dev                   # Restart dev
+
+# Sprawdź czy moduły się ładują:
+curl -I http://kalendarz.loc/src/main.js
+# Powinno zwrócić: Content-Type: text/javascript
+```
+
 ### Container nie startuje
 ```bash
 # Sprawdź logi
-make logs
+make dev-logs              # Dla dev
+# lub
+make logs                  # Dla produkcji
+
 # lub dla konkretnego kontenera
-docker compose logs frontend-dev
+docker compose -f docker-compose.dev.yml logs frontend-dev
 docker compose logs backend
 ```
 

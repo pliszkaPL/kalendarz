@@ -46,4 +46,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the calendar entries for the user
+     */
+    public function calendarEntries()
+    {
+        return $this->hasMany(CalendarEntry::class);
+    }
+
+    /**
+     * Get the calendar groups for the user
+     */
+    public function calendarGroups()
+    {
+        return $this->hasMany(CalendarGroup::class);
+    }
 }

@@ -167,7 +167,7 @@ export default {
         loading.value = true
         error.value = ''
         await authService.login(loginForm.value.email, loginForm.value.password)
-        router.push('/dashboard')
+        router.push('/calendar')
       } catch (err) {
         error.value = err.response?.data?.message || 'Login failed. Please try again.'
       } finally {
@@ -192,7 +192,7 @@ export default {
           registerForm.value.password,
           registerForm.value.password_confirmation
         )
-        router.push('/dashboard')
+        router.push('/calendar')
       } catch (err) {
         error.value = err.response?.data?.message || 'Registration failed. Please try again.'
       } finally {
