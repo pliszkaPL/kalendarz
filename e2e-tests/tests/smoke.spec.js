@@ -129,12 +129,14 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.fill('input[id="register-password"]', testPassword);
     await page.fill('input[id="register-password-confirm"]', testPassword);
 
-    // Submit form
+    // Submit form and wait for API response
     console.log('Submitting registration form...');
+    const responsePromise = page.waitForResponse(
+      response => response.url().includes('/api/register') && response.status() === 201,
+      { timeout: 10000 }
+    );
     await page.click('button[type="submit"]:has-text("Register")');
-
-    // Wait a moment for API response
-    await page.waitForTimeout(2000);
+    await responsePromise;
 
     // Debug: Log current state
     console.log('=== DEBUG after register click ===');
@@ -163,50 +165,39 @@ test.describe('Smoke Tests - Critical Path', () => {
     console.log('=== DEBUG: On /calendar page ===');
     console.log('URL:', page.url());
     
-    // Wait a bit for JS to load
-    await page.waitForTimeout(2000);
-    
-    // Check if Vue app div exists
-    const appDiv = await page.locator('#app').count();
-    console.log('DEBUG: #app div exists:', appDiv > 0);
-    
-    // Check if #app has any content
-    const appContent = await page.locator('#app').innerHTML().catch(() => '');
-    console.log('DEBUG: #app innerHTML length:', appContent.length);
-    console.log('DEBUG: #app innerHTML preview:', appContent.substring(0, 500));
-    
-    // Check all script tags
-    const scripts = await page.locator('script').evaluateAll(scripts => 
-      scripts.map(s => ({ src: s.src, type: s.type, hasContent: s.innerHTML.length > 0 }))
-    );
-    console.log('DEBUG: Script tags:', JSON.stringify(scripts, null, 2));
-    
-    // Check localStorage (token should be there)
+    // Check localStorage (token should be there) - do this BEFORE waiting for elements
     const token = await page.evaluate(() => localStorage.getItem('token'));
     console.log('DEBUG: localStorage token exists:', !!token);
-    
-    // Check if any Vue-specific classes exist
-    const vueElements = await page.locator('[class*="calendar"], [class*="navbar"], [class*="vue"]').count();
-    console.log('DEBUG: Vue-related elements count:', vueElements);
-    
-    console.log('=== END DEBUG ===');
+    if (!token) {
+      console.error('ERROR: Token not found in localStorage after registration!');
+      console.error('This will cause router guard to redirect back to /');
+    }
 
-    // Wait for Vue app to mount - increased timeout for CI
-    // The app needs time to load, mount Vue, and render
-    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
-      console.log('Network not idle, but continuing...');
-    });
-    
-    await Promise.race([
-      page.waitForSelector('.top-navbar', { timeout: 15000 }),
-      page.waitForSelector('.calendar-grid', { timeout: 15000 }),
-      page.waitForSelector('h1.app-title', { timeout: 15000 }),
-      page.waitForSelector('.calendar-view', { timeout: 15000 })
-    ]).catch(() => {
-      console.error('Vue failed to mount. Console errors:', errors);
-      console.error('Check browser console logs above for JS errors');
+    // Wait for Vue app to mount - wait for specific calendar elements
+    // Using Promise.race to accept any of these elements appearing
+    try {
+      await Promise.race([
+        page.waitForSelector('.top-navbar', { timeout: 15000 }),
+        page.waitForSelector('.calendar-grid', { timeout: 15000 }),
+        page.waitForSelector('h1.app-title', { timeout: 15000 }),
+        page.waitForSelector('.calendar-view', { timeout: 15000 })
+      ]);
+      console.log('Vue app mounted successfully');
+    } catch (e) {
+      // Enhanced debug output on failure
+      console.error('=== Vue failed to mount ===');
+      console.error('Current URL:', page.url());
+      console.error('Console errors:', errors);
+      
+      const appDiv = await page.locator('#app').count();
+      console.error('DEBUG: #app div exists:', appDiv > 0);
+      
+      const appContent = await page.locator('#app').innerHTML().catch(() => '');
+      console.error('DEBUG: #app innerHTML length:', appContent.length);
+      console.error('DEBUG: #app innerHTML preview:', appContent.substring(0, 500));
+      
       throw new Error(`Vue app did not mount. Console errors: ${errors.join(', ')}`);
-    });
+    }
     
     // Verify navbar is visible
     await expect(page.locator('.top-navbar')).toBeVisible({ timeout: 2000 });
