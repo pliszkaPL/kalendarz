@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "test:smoke": "playwright test smoke.spec.js",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report"
