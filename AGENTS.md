@@ -8,7 +8,7 @@
 - Project TechStack is available in @.ai/tech-stack.md
 - Project documentation the C4 diagram should be created and maintained by https://docs.structurizr.com/cli
 - Always start the work with make the documentation then tests and then implementation
-- Validate your solution and progress each time you implement a task from .ai/docs/work/
+- Validate your solution and progress each time you implement a task from docs/work/
 
 ## Package / library / image version
 
@@ -22,7 +22,7 @@
 - If user provides you an contract you are not allowed to change it 
 - You could find code snippets on base you could provide better solution in @.ai/snippets/* where the name of dir / file should be corresponding to the snipped you are looking for, for example find files having PHP and generic there are in path @snippetsPath/PHP/Generic/index.php
 - When providing the TODO plan for the user show hin also the Contract you will create
-- When creating documentation for yourself use the LLMs.txt standard see https://llmstxt.org/ all this documentation should be available in .ai/llms
+- When creating a library/package (npm, composer, etc.), use the LLMs.txt standard (https://llmstxt.org/) to make documentation AI-friendly. Place llms.txt in project root. For application projects (like this one), AGENTS.md and PROJECT.md serve this purpose.
 
 ## Code rules
 
