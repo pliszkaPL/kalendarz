@@ -153,11 +153,38 @@ jobs:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
 
-      - name: Wait for services
+      - name: Wait for backend
         run: |
+          echo "Waiting for backend to be healthy..."
           timeout 120 bash -c 'until docker compose ps backend | grep -q "healthy"; do sleep 5; done'
-          docker compose exec -T backend php artisan migrate --force
+          echo "Backend is healthy!"
+
+      - name: Run migrations
+        run: docker compose exec -T backend php artisan migrate --force
+
+      - name: Wait for Traefik to be healthy
+        run: |
+          echo "Waiting for Traefik health check..."
+          timeout 60 bash -c 'until docker compose ps traefik | grep -q "healthy"; do echo "Traefik starting..."; sleep 2; done'
+          echo "Traefik is healthy!"
+
+      - name: Wait for frontend container to be healthy
+        run: |
+          echo "Waiting for frontend container health check..."
+          timeout 60 bash -c 'until docker compose ps frontend | grep -q "healthy"; do echo "Frontend starting..."; sleep 2; done'
+          echo "Frontend container is healthy!"
+
+      - name: Wait for Traefik to register frontend router
+        run: |
+          echo "Waiting for Traefik to discover frontend service..."
+          timeout 60 bash -c 'until curl -s http://localhost:8080/api/http/routers 2>/dev/null | grep -q "frontend@docker"; do echo "Waiting for frontend router in Traefik..."; sleep 2; done'
+          echo "Frontend router registered in Traefik!"
+
+      - name: Wait for API health endpoint
+        run: |
+          echo "Testing API through Traefik..."
           timeout 60 bash -c 'until curl -f -H "Host: kalendarz.loc" http://localhost/api/health 2>/dev/null; do sleep 2; done'
+          echo "API is ready!"
 
       - name: Debug - Full diagnostic before frontend check
         if: always()
@@ -317,17 +344,37 @@ jobs:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
 
-      - name: Wait for services
+      - name: Wait for backend
         run: |
+          echo "Waiting for backend to be healthy..."
           timeout 120 bash -c 'until docker compose ps backend | grep -q "healthy"; do sleep 5; done'
-          docker compose exec -T backend php artisan migrate --force
-          timeout 60 bash -c 'until curl -f -H "Host: kalendarz.loc" http://localhost/api/health 2>/dev/null; do sleep 2; done'
+          echo "Backend is healthy!"
+
+      - name: Run migrations
+        run: docker compose exec -T backend php artisan migrate --force
+
+      - name: Wait for Traefik to be healthy
+        run: |
+          echo "Waiting for Traefik health check..."
+          timeout 60 bash -c 'until docker compose ps traefik | grep -q "healthy"; do echo "Traefik starting..."; sleep 2; done'
+          echo "Traefik is healthy!"
+
+      - name: Wait for frontend container to be healthy
+        run: |
+          echo "Waiting for frontend container health check..."
+          timeout 60 bash -c 'until docker compose ps frontend | grep -q "healthy"; do echo "Frontend starting..."; sleep 2; done'
+          echo "Frontend container is healthy!"
+
+      - name: Wait for Traefik to register frontend router
+        run: |
+          echo "Waiting for Traefik to discover frontend service..."
+          timeout 60 bash -c 'until curl -s http://localhost:8080/api/http/routers 2>/dev/null | grep -q "frontend@docker"; do echo "Waiting for frontend router in Traefik..."; sleep 2; done'
+          echo "Frontend router registered in Traefik!"
 
       - name: Wait for frontend to be ready
         run: |
           echo "Waiting for frontend to serve content..."
-          # Check for <title>Kalendarz</title> which exists in static HTML
-          timeout 90 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do echo "Waiting for frontend..."; sleep 3; done'
+          timeout 60 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do echo "Waiting for frontend..."; sleep 3; done'
           echo "Frontend is ready!"
 
       - name: Set up Node.js
