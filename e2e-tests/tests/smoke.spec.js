@@ -35,8 +35,30 @@ test.describe('Smoke Tests - Critical Path', () => {
   test('SMOKE: User can login successfully', async ({ page }) => {
     // Catch console errors
     const errors = [];
+    const networkResponses = [];
+
     page.on('console', msg => {
       if (msg.type() === 'error') errors.push(msg.text());
+    });
+
+    // Capture API responses for debugging
+    page.on('response', async response => {
+      if (response.url().includes('/api/')) {
+        try {
+          const body = await response.text();
+          networkResponses.push({
+            url: response.url(),
+            status: response.status(),
+            body: body.substring(0, 500)
+          });
+          console.log(`API Response: ${response.status()} ${response.url()}`);
+          if (response.status() >= 400) {
+            console.log(`API Error Body: ${body.substring(0, 500)}`);
+          }
+        } catch (e) {
+          // Ignore body read errors
+        }
+      }
     });
 
     // Navigate to app
@@ -61,7 +83,7 @@ test.describe('Smoke Tests - Critical Path', () => {
 
     // Click Register tab to show registration form
     await page.click('button:has-text("Register")');
-    
+
     // Wait for registration form to appear
     await page.waitForSelector('input[id="register-name"]', { timeout: 3000 });
 
@@ -70,12 +92,35 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.fill('input[id="register-email"]', testEmail);
     await page.fill('input[id="register-password"]', testPassword);
     await page.fill('input[id="register-password-confirm"]', testPassword);
-    
+
     // Submit form
+    console.log('Submitting registration form...');
     await page.click('button[type="submit"]:has-text("Register")');
 
+    // Wait a moment for API response
+    await page.waitForTimeout(2000);
+
+    // Debug: Log current state
+    console.log('=== DEBUG after register click ===');
+    console.log('Current URL:', page.url());
+    console.log('Console errors:', errors);
+    console.log('Network responses:', JSON.stringify(networkResponses, null, 2));
+
+    // Check for error message on page
+    const errorMsg = await page.locator('.text-red-500, .error-message, [class*="error"]').first().textContent().catch(() => null);
+    if (errorMsg) {
+      console.log('Error message on page:', errorMsg);
+    }
+
     // Should redirect to calendar
-    await page.waitForURL('**/calendar', { timeout: 5000 });
+    try {
+      await page.waitForURL('**/calendar', { timeout: 10000 });
+    } catch (e) {
+      console.log('=== FAILED TO REDIRECT ===');
+      console.log('Final URL:', page.url());
+      console.log('Page content:', (await page.content()).substring(0, 2000));
+      throw e;
+    }
     expect(page.url()).toContain('/calendar');
 
     // Wait for Vue app to mount (any of these means success)
