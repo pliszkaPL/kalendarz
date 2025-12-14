@@ -92,13 +92,23 @@
 | Server | 27.5.1 |
 | User UID | 1000 |
 
-When mounting Docker socket in containers (e.g., Traefik), use:
+When mounting Docker socket in containers (e.g., Traefik), use environment variable for flexibility:
 ```yaml
 volumes:
-  - ${XDG_RUNTIME_DIR:-/run/user/1000}/docker.sock:/var/run/docker.sock:ro
+  - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock:ro
 ```
 
-Do NOT use `/var/run/docker.sock` - it won't work with rootless Docker.
+**Local Development (Rootless Docker):**
+```bash
+export DOCKER_SOCK=/run/user/1000/docker.sock
+docker compose up
+```
+
+**CI/CD (Standard Docker):**
+```bash
+# DOCKER_SOCK not set, defaults to /var/run/docker.sock
+docker compose up
+```
 
 ## Readme and documentations
 
