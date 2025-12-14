@@ -8,7 +8,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'html',
   use: {
-    baseURL: 'http://kalendarz.loc',
+    baseURL: 'http://localhost',
     trace: 'on-first-retry',
   },
 
@@ -21,7 +21,7 @@ export default defineConfig({
 
   webServer: process.env.CI ? undefined : {
     command: 'echo "Using external services"',
-    url: 'http://kalendarz.loc',
+    url: 'http://localhost',
     reuseExistingServer: true,
     timeout: 120 * 1000,
   },

@@ -1,10 +1,8 @@
 import axios from 'axios'
 import type { Entry, Group } from '../types'
 
-const API_URL = 'http://kalendarz.loc/api'
-
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: '/api',
   withCredentials: true,
   headers: {
     'Accept': 'application/json',

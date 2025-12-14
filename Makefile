@@ -1,4 +1,4 @@
-# Makefile - Kalendarz MVP
+# Makefile - Kalendarz MVP (Local Development)
 #
 # Usage: make <command>
 # Run `make help` to see available commands
@@ -7,10 +7,9 @@
 # Configuration
 # =============================================================================
 
-DC := docker compose
-DOCKER := docker
-BACKEND_CONTAINER := backend
-FRONTEND_CONTAINER := frontend
+BACKEND_DIR := backend
+FRONTEND_DIR := frontend
+E2E_DIR := e2e-tests
 
 # =============================================================================
 # Help
@@ -21,138 +20,73 @@ help h: ### Show this help message
 	@grep -E '^[a-zA-Z_-]+.*:.*### .*$$' $(MAKEFILE_LIST) | sed 's/:.*###/:###/' | sort | awk 'BEGIN {FS = ":###"}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 # =============================================================================
-# Build
+# Setup / Install
 # =============================================================================
 
-.PHONY: build build-no-cache rebuild
-build build-no-cache rebuild: ### Build all Docker images (no cache)
-	$(DC) build --no-cache
+.PHONY: setup install
+setup install: ### Full project setup (install deps + migrate)
+	@echo "Installing backend dependencies..."
+	cd $(BACKEND_DIR) && composer install
+	@echo ""
+	@echo "Setting up backend .env..."
+	@if [ ! -f $(BACKEND_DIR)/.env ]; then cp $(BACKEND_DIR)/.env.example $(BACKEND_DIR)/.env; fi
+	cd $(BACKEND_DIR) && php artisan key:generate --force
+	@echo ""
+	@echo "Running migrations..."
+	@touch $(BACKEND_DIR)/database/database.sqlite
+	cd $(BACKEND_DIR) && php artisan migrate --force
+	@echo ""
+	@echo "Installing frontend dependencies..."
+	cd $(FRONTEND_DIR) && npm install
+	@echo ""
+	@echo "Setup complete!"
+	@echo "Run 'make dev' to start development servers"
 
-.PHONY: build-cache
-build-cache: ### Build Docker images (with cache)
-	$(DC) build
+.PHONY: install-backend
+install-backend: ### Install backend dependencies
+	cd $(BACKEND_DIR) && composer install
 
-# =============================================================================
-# Run / Start / Stop
-# =============================================================================
+.PHONY: install-frontend npm-install
+install-frontend npm-install: ### Install frontend dependencies
+	cd $(FRONTEND_DIR) && npm install
 
-.PHONY: run up start
-run up start: ### Start all services in background (production)
-	@echo "🔍 Checking for dev containers..."
-	@if docker ps --filter "name=kalendarz-frontend-dev-1" --format "{{.Names}}" | grep -q "kalendarz-frontend-dev-1"; then \
-		echo "⚠️  WARNING: Dev containers are running!"; \
-		echo "⚠️  This will cause conflicts (production won't work)"; \
-		echo ""; \
-		echo "Run: make dev-down   # to stop dev first"; \
-		echo ""; \
-		exit 1; \
-	fi
-	@echo "✅ No conflicts detected, starting production..."
-	$(DC) up -d
+.PHONY: install-e2e setup-e2e
+install-e2e setup-e2e: ### Install E2E test dependencies
+	cd $(E2E_DIR) && npm install
+	cd $(E2E_DIR) && npx playwright install chromium
 
-.PHONY: run-logs up-logs
-run-logs up-logs: ### Start all services with logs
-	$(DC) up
-
-.PHONY: down stop
-down stop: ### Stop and remove all containers
-	$(DC) down
-
-.PHONY: restart
-restart: ### Restart all services
-	$(DC) restart
-
-.PHONY: destroy
-destroy: ### Stop containers and remove volumes
-	$(DC) down -v
+.PHONY: install-all
+install-all: ### Install all dependencies (backend + frontend + e2e)
+	cd $(BACKEND_DIR) && composer install
+	cd $(FRONTEND_DIR) && npm install
+	cd $(E2E_DIR) && npm install
 
 # =============================================================================
 # Development
 # =============================================================================
 
-.PHONY: dev dev-up dev-start
-dev dev-up dev-start: ### Start development environment with hot reload
-	@echo "🔍 Checking for production containers..."
-	@if docker ps --filter "name=kalendarz-frontend-1" --format "{{.Names}}" | grep -q "kalendarz-frontend-1"; then \
-		echo "⚠️  WARNING: Production containers are running!"; \
-		echo "⚠️  This will cause conflicts (dev won't work in browser)"; \
-		echo ""; \
-		echo "Run: make down   # to stop production first"; \
-		echo ""; \
-		exit 1; \
-	fi
-	@echo "✅ No conflicts detected, starting dev environment..."
-	$(DC) -f docker-compose.dev.yml up -d
-
-.PHONY: dev-logs
-dev-logs: ### Show development logs
-	$(DC) -f docker-compose.dev.yml logs -f
-
-.PHONY: dev-down dev-stop
-dev-down dev-stop: ### Stop development environment
-	$(DC) -f docker-compose.dev.yml down
-
-.PHONY: dev-restart
-dev-restart: ### Restart development environment
-	$(DC) -f docker-compose.dev.yml restart
-
-.PHONY: dev-build
-dev-build: ### Rebuild development containers
-	$(DC) -f docker-compose.dev.yml build --no-cache
-
-.PHONY: dev-rebuild
-dev-rebuild: ### Rebuild and restart development
-	$(DC) -f docker-compose.dev.yml build --no-cache
-	$(DC) -f docker-compose.dev.yml up -d
-
-.PHONY: which-env env-status
-which-env env-status: ### Check which environment is running
-	@echo "🔍 Checking environment status..."
+.PHONY: dev dev-start
+dev dev-start: ### Start development servers (backend + frontend)
+	@echo "Starting backend on http://localhost:8000..."
+	@echo "Starting frontend on http://localhost:5173..."
 	@echo ""
-	@PROD=$$(docker ps --filter "name=kalendarz-frontend-1" --format "{{.Names}}" 2>/dev/null | grep -c "kalendarz-frontend-1" || true); \
-	DEV=$$(docker ps --filter "name=kalendarz-frontend-dev-1" --format "{{.Names}}" 2>/dev/null | grep -c "kalendarz-frontend-dev-1" || true); \
-	if [ "$${PROD}" != "0" ] && [ "$${DEV}" != "0" ]; then \
-		echo "⚠️  CONFLICT: Both production AND dev are running!"; \
-		echo "⚠️  This causes issues - stop one of them:"; \
-		echo "     make down      # Stop production"; \
-		echo "     make dev-down  # Stop dev"; \
-	elif [ "$${PROD}" != "0" ]; then \
-		echo "✅ Production environment is running"; \
-		echo "   URL: http://kalendarz.loc"; \
-		echo ""; \
-		echo "   To switch to dev: make down && make dev"; \
-	elif [ "$${DEV}" != "0" ]; then \
-		echo "✅ Development environment is running"; \
-		echo "   URL: http://kalendarz.loc (with hot reload)"; \
-		echo ""; \
-		echo "   To switch to prod: make dev-down && make up"; \
-	else \
-		echo "ℹ️  No environment is running"; \
-		echo ""; \
-		echo "   Start dev:  make dev"; \
-		echo "   Start prod: make up"; \
-	fi
-	@echo ""
+	@echo "Press Ctrl+C to stop all servers"
+	@trap 'kill 0' EXIT; \
+		cd $(BACKEND_DIR) && php artisan serve --host=127.0.0.1 --port=8000 & \
+		cd $(FRONTEND_DIR) && npm run dev & \
+		wait
 
-# =============================================================================
-# Status / Logs
-# =============================================================================
+.PHONY: dev-backend
+dev-backend: ### Start backend server only
+	cd $(BACKEND_DIR) && php artisan serve --host=127.0.0.1 --port=8000
 
-.PHONY: ps status
-ps status: ### Show running containers
-	$(DC) ps
+.PHONY: dev-frontend
+dev-frontend: ### Start frontend dev server only
+	cd $(FRONTEND_DIR) && npm run dev
 
-.PHONY: logs
-logs: ### Show logs from all services
-	$(DC) logs -f
-
-.PHONY: logs-backend
-logs-backend: ### Show backend logs
-	$(DC) logs -f $(BACKEND_CONTAINER)
-
-.PHONY: logs-frontend
-logs-frontend: ### Show frontend logs
-	$(DC) logs -f $(FRONTEND_CONTAINER)
+.PHONY: build
+build: ### Build frontend for production
+	cd $(FRONTEND_DIR) && npm run build
 
 # =============================================================================
 # Database
@@ -160,19 +94,19 @@ logs-frontend: ### Show frontend logs
 
 .PHONY: migrate db-migrate
 migrate db-migrate: ### Run database migrations
-	$(DC) exec $(BACKEND_CONTAINER) php artisan migrate --force
+	cd $(BACKEND_DIR) && php artisan migrate --force
 
 .PHONY: migrate-fresh db-fresh
 migrate-fresh db-fresh: ### Fresh migration (drop all tables)
-	$(DC) exec $(BACKEND_CONTAINER) php artisan migrate:fresh --force
+	cd $(BACKEND_DIR) && php artisan migrate:fresh --force
 
 .PHONY: migrate-seed db-seed
 migrate-seed db-seed: ### Fresh migration with seeders
-	$(DC) exec $(BACKEND_CONTAINER) php artisan migrate:fresh --seed --force
+	cd $(BACKEND_DIR) && php artisan migrate:fresh --seed --force
 
 .PHONY: seed
 seed: ### Run database seeders
-	$(DC) exec $(BACKEND_CONTAINER) php artisan db:seed --force
+	cd $(BACKEND_DIR) && php artisan db:seed --force
 
 # =============================================================================
 # Tests
@@ -181,34 +115,34 @@ seed: ### Run database seeders
 .PHONY: tests test
 tests test: ### Run all tests (backend + e2e)
 	@echo "Running backend tests..."
-	$(DC) exec $(BACKEND_CONTAINER) ./vendor/bin/pest --exclude-group=e2e || true
+	cd $(BACKEND_DIR) && ./vendor/bin/pest --exclude-group=e2e || true
 	@echo ""
 	@echo "Running E2E tests..."
-	cd e2e-tests && npm test
+	cd $(E2E_DIR) && npm test
 
 .PHONY: tests-backend test-backend
 tests-backend test-backend: ### Run backend tests (PEST)
-	$(DC) exec $(BACKEND_CONTAINER) ./vendor/bin/pest --exclude-group=e2e
+	cd $(BACKEND_DIR) && ./vendor/bin/pest --exclude-group=e2e
 
 .PHONY: tests-e2e test-e2e
 tests-e2e test-e2e: ### Run E2E tests (Playwright)
-	cd e2e-tests && npm test
+	cd $(E2E_DIR) && npm test
 
 .PHONY: tests-e2e-headed test-e2e-headed
 tests-e2e-headed test-e2e-headed: ### Run E2E tests with browser
-	cd e2e-tests && npm run test:headed
+	cd $(E2E_DIR) && npm run test:headed
 
 .PHONY: tests-e2e-ui test-e2e-ui
 tests-e2e-ui test-e2e-ui: ### Run E2E tests with Playwright UI
-	cd e2e-tests && npm run test:ui
+	cd $(E2E_DIR) && npm run test:ui
 
 .PHONY: tests-smoke test-smoke smoke
 tests-smoke test-smoke smoke: ### Run smoke tests only (critical path)
-	cd e2e-tests && npx playwright test tests/smoke.spec.js
+	cd $(E2E_DIR) && npx playwright test tests/smoke.spec.js
 
 .PHONY: tests-smoke-headed test-smoke-headed smoke-headed
 tests-smoke-headed test-smoke-headed smoke-headed: ### Run smoke tests with browser visible
-	cd e2e-tests && npx playwright test tests/smoke.spec.js --headed
+	cd $(E2E_DIR) && npx playwright test tests/smoke.spec.js --headed
 
 # =============================================================================
 # Cache / Cleanup
@@ -216,32 +150,16 @@ tests-smoke-headed test-smoke-headed smoke-headed: ### Run smoke tests with brow
 
 .PHONY: cache-clear clear-cache
 cache-clear clear-cache: ### Clear Laravel cache
-	$(DC) exec $(BACKEND_CONTAINER) php artisan config:clear
-	$(DC) exec $(BACKEND_CONTAINER) php artisan cache:clear
-	$(DC) exec $(BACKEND_CONTAINER) php artisan route:clear
-	$(DC) exec $(BACKEND_CONTAINER) php artisan view:clear
+	cd $(BACKEND_DIR) && php artisan config:clear
+	cd $(BACKEND_DIR) && php artisan cache:clear
+	cd $(BACKEND_DIR) && php artisan route:clear
+	cd $(BACKEND_DIR) && php artisan view:clear
 
 .PHONY: cache-optimize optimize
 cache-optimize optimize: ### Optimize Laravel cache for production
-	$(DC) exec $(BACKEND_CONTAINER) php artisan config:cache
-	$(DC) exec $(BACKEND_CONTAINER) php artisan route:cache
-	$(DC) exec $(BACKEND_CONTAINER) php artisan view:cache
-
-# =============================================================================
-# Shell Access
-# =============================================================================
-
-.PHONY: shell-backend sh-backend bash-backend
-shell-backend sh-backend bash-backend: ### Open shell in backend container
-	$(DC) exec $(BACKEND_CONTAINER) sh
-
-.PHONY: shell-frontend sh-frontend bash-frontend
-shell-frontend sh-frontend bash-frontend: ### Open shell in frontend container
-	$(DC) exec $(FRONTEND_CONTAINER) sh
-
-.PHONY: artisan
-artisan: ### Run artisan command (usage: make artisan cmd="migrate:status")
-	$(DC) exec $(BACKEND_CONTAINER) php artisan $(cmd)
+	cd $(BACKEND_DIR) && php artisan config:cache
+	cd $(BACKEND_DIR) && php artisan route:cache
+	cd $(BACKEND_DIR) && php artisan view:cache
 
 # =============================================================================
 # Code Quality
@@ -249,41 +167,19 @@ artisan: ### Run artisan command (usage: make artisan cmd="migrate:status")
 
 .PHONY: quality lint
 quality lint: ### Run all code quality checks
-	$(DC) exec $(BACKEND_CONTAINER) ./vendor/bin/pint --test
+	cd $(BACKEND_DIR) && ./vendor/bin/pint --test
 
 .PHONY: fix format
 fix format: ### Fix code style issues
-	$(DC) exec $(BACKEND_CONTAINER) ./vendor/bin/pint
+	cd $(BACKEND_DIR) && ./vendor/bin/pint
 
 # =============================================================================
-# Setup / Install
+# Artisan Commands
 # =============================================================================
 
-.PHONY: setup install
-setup install: ### Full project setup (build + start + migrate)
-	$(DC) build
-	$(DC) up -d
-	@echo "Waiting for services to start..."
-	@sleep 5
-	$(DC) exec $(BACKEND_CONTAINER) php artisan migrate --force
-	@echo ""
-	@echo "Setup complete!"
-	@echo "Frontend: http://kalendarz.loc"
-	@echo "API: http://kalendarz.loc/api"
-
-.PHONY: setup-e2e install-e2e
-setup-e2e install-e2e: ### Install E2E test dependencies
-	cd e2e-tests && npm install
-	cd e2e-tests && npx playwright install chromium
-
-.PHONY: install-frontend npm-install
-install-frontend npm-install: ### Install frontend dependencies
-	cd frontend && npm install
-
-.PHONY: install-all
-install-all: ### Install all dependencies (frontend + e2e)
-	cd frontend && npm install
-	cd e2e-tests && npm install
+.PHONY: artisan
+artisan: ### Run artisan command (usage: make artisan cmd="migrate:status")
+	cd $(BACKEND_DIR) && php artisan $(cmd)
 
 # =============================================================================
 # Git
