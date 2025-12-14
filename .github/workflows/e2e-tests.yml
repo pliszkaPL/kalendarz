@@ -159,6 +159,79 @@ jobs:
           docker compose exec -T backend php artisan migrate --force
           timeout 60 bash -c 'until curl -f -H "Host: kalendarz.loc" http://localhost/api/health 2>/dev/null; do sleep 2; done'
 
+      - name: Debug - Full diagnostic before frontend check
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 1: Container Status ==="
+          echo "=========================================="
+          docker compose ps -a
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 2: Container Health ==="
+          echo "=========================================="
+          docker inspect --format='{{.Name}}: {{.State.Health.Status}}' $(docker compose ps -q) 2>/dev/null || echo "No health info"
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 3: Frontend Logs ==="
+          echo "=========================================="
+          docker compose logs frontend --tail 100
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 4: Traefik Logs ==="
+          echo "=========================================="
+          docker compose logs traefik --tail 50
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 5: Network Info ==="
+          echo "=========================================="
+          docker network ls
+          docker network inspect kalendarz_kalendarz-network 2>/dev/null || docker network inspect $(docker network ls -q -f name=kalendarz) 2>/dev/null || echo "Network not found"
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 6: Test Frontend Container Directly ==="
+          echo "=========================================="
+          FRONTEND_CONTAINER=$(docker compose ps -q frontend)
+          echo "Frontend container ID: $FRONTEND_CONTAINER"
+          if [ -n "$FRONTEND_CONTAINER" ]; then
+            FRONTEND_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $FRONTEND_CONTAINER)
+            echo "Frontend IP: $FRONTEND_IP"
+            echo "--- Curl to frontend container directly (port 80) ---"
+            curl -v --connect-timeout 5 http://$FRONTEND_IP:80/ 2>&1 || echo "Direct frontend curl failed"
+          else
+            echo "ERROR: Frontend container not found!"
+          fi
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 7: Test Traefik Routing ==="
+          echo "=========================================="
+          echo "--- Curl to localhost with Host header ---"
+          curl -v --connect-timeout 10 -H "Host: kalendarz.loc" http://localhost/ 2>&1 || echo "Traefik routing failed"
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 8: Traefik Router Config ==="
+          echo "=========================================="
+          curl -s http://localhost:8080/api/http/routers 2>/dev/null | head -200 || echo "Traefik API not accessible"
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 9: Traefik Services Config ==="
+          echo "=========================================="
+          curl -s http://localhost:8080/api/http/services 2>/dev/null | head -200 || echo "Traefik API not accessible"
+
+          echo ""
+          echo "=========================================="
+          echo "=== DIAGNOSTIC STEP 10: /etc/hosts ==="
+          echo "=========================================="
+          cat /etc/hosts | grep kalendarz || echo "No kalendarz entry in hosts"
+
       - name: Wait for frontend to be ready
         run: |
           echo "Waiting for frontend to serve content..."
@@ -166,15 +239,6 @@ jobs:
           # The body text "Kalendarz" only appears after Vue.js mounts (requires browser JS execution)
           timeout 90 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do echo "Waiting for frontend..."; sleep 3; done'
           echo "Frontend is ready!"
-
-      - name: Debug - Show frontend response
-        if: always()
-        run: |
-          echo "=== Frontend HTML response ==="
-          curl -s -H "Host: kalendarz.loc" http://localhost | head -100
-          echo ""
-          echo "=== Frontend container logs ==="
-          docker compose logs frontend --tail 30
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
