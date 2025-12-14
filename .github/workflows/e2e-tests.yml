@@ -165,25 +165,67 @@ jobs:
       - name: Wait for Traefik to be healthy
         run: |
           echo "Waiting for Traefik health check..."
-          timeout 60 bash -c 'until docker compose ps traefik | grep -q "healthy"; do echo "Traefik starting..."; sleep 2; done'
+          timeout 60 bash -c '
+            while ! docker compose ps traefik | grep -q "healthy"; do
+              echo "--- Traefik status ---"
+              docker compose ps traefik
+              echo "--- Traefik logs (last 10) ---"
+              docker compose logs traefik --tail 10
+              sleep 3
+            done
+          '
           echo "Traefik is healthy!"
 
       - name: Wait for frontend container to be healthy
         run: |
           echo "Waiting for frontend container health check..."
-          timeout 60 bash -c 'until docker compose ps frontend | grep -q "healthy"; do echo "Frontend starting..."; sleep 2; done'
+          timeout 60 bash -c '
+            while ! docker compose ps frontend | grep -q "healthy"; do
+              echo "--- Frontend status ---"
+              docker compose ps frontend
+              echo "--- Frontend logs (last 10) ---"
+              docker compose logs frontend --tail 10
+              sleep 3
+            done
+          '
           echo "Frontend container is healthy!"
 
       - name: Wait for Traefik to register frontend router
         run: |
           echo "Waiting for Traefik to discover frontend service..."
-          timeout 60 bash -c 'until curl -s http://localhost:8080/api/http/routers 2>/dev/null | grep -q "frontend@docker"; do echo "Waiting for frontend router in Traefik..."; sleep 2; done'
+          timeout 90 bash -c '
+            while ! curl -s http://localhost:8080/api/http/routers 2>/dev/null | grep -q "frontend@docker"; do
+              echo "=== DEBUG: Current Traefik routers ==="
+              curl -s http://localhost:8080/api/http/routers 2>/dev/null | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/api/http/routers 2>/dev/null || echo "API not ready"
+              echo ""
+              echo "=== DEBUG: Current Traefik services ==="
+              curl -s http://localhost:8080/api/http/services 2>/dev/null | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/api/http/services 2>/dev/null || echo "API not ready"
+              echo ""
+              echo "=== DEBUG: All containers ==="
+              docker compose ps -a
+              echo ""
+              echo "=== DEBUG: Docker labels on frontend ==="
+              docker inspect $(docker compose ps -q frontend) --format "{{json .Config.Labels}}" 2>/dev/null | python3 -m json.tool 2>/dev/null || echo "Cannot inspect frontend"
+              echo ""
+              echo "=== DEBUG: Traefik logs (last 20) ==="
+              docker compose logs traefik --tail 20
+              echo ""
+              echo "--- Waiting 5s before next check ---"
+              sleep 5
+            done
+          '
           echo "Frontend router registered in Traefik!"
 
       - name: Wait for API health endpoint
         run: |
           echo "Testing API through Traefik..."
-          timeout 60 bash -c 'until curl -f -H "Host: kalendarz.loc" http://localhost/api/health 2>/dev/null; do sleep 2; done'
+          timeout 60 bash -c '
+            while ! curl -f -H "Host: kalendarz.loc" http://localhost/api/health 2>/dev/null; do
+              echo "--- API check failed, curl verbose output ---"
+              curl -v -H "Host: kalendarz.loc" http://localhost/api/health 2>&1 || true
+              sleep 3
+            done
+          '
           echo "API is ready!"
 
       - name: Debug - Full diagnostic before frontend check
@@ -262,9 +304,13 @@ jobs:
       - name: Wait for frontend to be ready
         run: |
           echo "Waiting for frontend to serve content..."
-          # Check for <title>Kalendarz</title> which exists in static HTML
-          # The body text "Kalendarz" only appears after Vue.js mounts (requires browser JS execution)
-          timeout 90 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do echo "Waiting for frontend..."; sleep 3; done'
+          timeout 90 bash -c '
+            while ! curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do
+              echo "=== DEBUG: curl response ==="
+              curl -v -H "Host: kalendarz.loc" http://localhost 2>&1 || true
+              sleep 3
+            done
+          '
           echo "Frontend is ready!"
 
       - name: Set up Node.js
@@ -356,25 +402,67 @@ jobs:
       - name: Wait for Traefik to be healthy
         run: |
           echo "Waiting for Traefik health check..."
-          timeout 60 bash -c 'until docker compose ps traefik | grep -q "healthy"; do echo "Traefik starting..."; sleep 2; done'
+          timeout 60 bash -c '
+            while ! docker compose ps traefik | grep -q "healthy"; do
+              echo "--- Traefik status ---"
+              docker compose ps traefik
+              echo "--- Traefik logs (last 10) ---"
+              docker compose logs traefik --tail 10
+              sleep 3
+            done
+          '
           echo "Traefik is healthy!"
 
       - name: Wait for frontend container to be healthy
         run: |
           echo "Waiting for frontend container health check..."
-          timeout 60 bash -c 'until docker compose ps frontend | grep -q "healthy"; do echo "Frontend starting..."; sleep 2; done'
+          timeout 60 bash -c '
+            while ! docker compose ps frontend | grep -q "healthy"; do
+              echo "--- Frontend status ---"
+              docker compose ps frontend
+              echo "--- Frontend logs (last 10) ---"
+              docker compose logs frontend --tail 10
+              sleep 3
+            done
+          '
           echo "Frontend container is healthy!"
 
       - name: Wait for Traefik to register frontend router
         run: |
           echo "Waiting for Traefik to discover frontend service..."
-          timeout 60 bash -c 'until curl -s http://localhost:8080/api/http/routers 2>/dev/null | grep -q "frontend@docker"; do echo "Waiting for frontend router in Traefik..."; sleep 2; done'
+          timeout 90 bash -c '
+            while ! curl -s http://localhost:8080/api/http/routers 2>/dev/null | grep -q "frontend@docker"; do
+              echo "=== DEBUG: Current Traefik routers ==="
+              curl -s http://localhost:8080/api/http/routers 2>/dev/null | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/api/http/routers 2>/dev/null || echo "API not ready"
+              echo ""
+              echo "=== DEBUG: Current Traefik services ==="
+              curl -s http://localhost:8080/api/http/services 2>/dev/null | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/api/http/services 2>/dev/null || echo "API not ready"
+              echo ""
+              echo "=== DEBUG: All containers ==="
+              docker compose ps -a
+              echo ""
+              echo "=== DEBUG: Docker labels on frontend ==="
+              docker inspect $(docker compose ps -q frontend) --format "{{json .Config.Labels}}" 2>/dev/null | python3 -m json.tool 2>/dev/null || echo "Cannot inspect frontend"
+              echo ""
+              echo "=== DEBUG: Traefik logs (last 20) ==="
+              docker compose logs traefik --tail 20
+              echo ""
+              echo "--- Waiting 5s before next check ---"
+              sleep 5
+            done
+          '
           echo "Frontend router registered in Traefik!"
 
       - name: Wait for frontend to be ready
         run: |
           echo "Waiting for frontend to serve content..."
-          timeout 60 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do echo "Waiting for frontend..."; sleep 3; done'
+          timeout 60 bash -c '
+            while ! curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do
+              echo "=== DEBUG: curl response ==="
+              curl -v -H "Host: kalendarz.loc" http://localhost 2>&1 || true
+              sleep 3
+            done
+          '
           echo "Frontend is ready!"
 
       - name: Set up Node.js
