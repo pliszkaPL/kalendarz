@@ -121,19 +121,52 @@ seed: ### Run database seeders
 # =============================================================================
 
 .PHONY: tests test
-tests test: ### Run all tests (backend + e2e)
+tests test: ### Run all tests (backend only, use test-all for e2e)
 	@echo "Running backend tests..."
-	cd $(BACKEND_DIR) && ./vendor/bin/pest --exclude-group=e2e || true
+	cd $(BACKEND_DIR) && ./vendor/bin/pest --exclude-group=e2e
 	@echo ""
-	@echo "Running E2E tests..."
-	cd $(E2E_DIR) && npm test
+	@echo "✓ Backend tests passed!"
+	@echo ""
+	@echo "Note: E2E tests require running servers."
+	@echo "  To run E2E: start servers (make dev) then run 'make test-e2e' in another terminal"
+	@echo "  Or use: make test-all (starts servers automatically)"
+
+.PHONY: tests-all test-all
+tests-all test-all: ### Run all tests with servers (backend + frontend + e2e)
+	@echo "=== Running Backend Tests ==="
+	@echo ""
+	cd $(BACKEND_DIR) && ./vendor/bin/pest --exclude-group=e2e
+	@echo ""
+	@echo "=== Starting Backend Server ==="
+	@cd $(BACKEND_DIR) && php artisan serve --host=$(BACKEND_HOST) --port=$(BACKEND_PORT) > /tmp/backend.log 2>&1 & echo $$! > /tmp/kalendarz-backend.pid
+	@sleep 2
+	@echo "✓ Backend started at $(BACKEND_URL)"
+	@echo ""
+	@echo "=== Starting Frontend Server ==="
+	@cd $(FRONTEND_DIR) && npm run dev -- --host $(FRONTEND_HOST) --port $(FRONTEND_PORT) > /tmp/frontend.log 2>&1 & echo $$! > /tmp/kalendarz-frontend.pid
+	@sleep 5
+	@echo "✓ Frontend started at $(FRONTEND_URL)"
+	@echo ""
+	@echo "=== Running E2E Tests ==="
+	@cd $(E2E_DIR) && npm test || (kill `cat /tmp/kalendarz-backend.pid /tmp/kalendarz-frontend.pid` 2>/dev/null; rm -f /tmp/kalendarz-*.pid; exit 1)
+	@echo ""
+	@echo "=== Stopping Servers ==="
+	@kill `cat /tmp/kalendarz-backend.pid /tmp/kalendarz-frontend.pid` 2>/dev/null || true
+	@rm -f /tmp/kalendarz-backend.pid /tmp/kalendarz-frontend.pid /tmp/backend.log /tmp/frontend.log
+	@echo "✓ All tests passed!"
 
 .PHONY: tests-backend test-backend
 tests-backend test-backend: ### Run backend tests (PEST)
 	cd $(BACKEND_DIR) && ./vendor/bin/pest --exclude-group=e2e
 
 .PHONY: tests-e2e test-e2e
-tests-e2e test-e2e: ### Run E2E tests (Playwright)
+tests-e2e test-e2e: ### Run E2E tests (requires running servers!)
+	@echo "Note: Make sure servers are running:"
+	@echo "  Backend: $(BACKEND_URL)"
+	@echo "  Frontend: $(FRONTEND_URL)"
+	@echo ""
+	@echo "Use 'make dev' in another terminal or 'make test-all' to auto-start"
+	@echo ""
 	cd $(E2E_DIR) && npm test
 
 .PHONY: tests-e2e-headed test-e2e-headed
@@ -151,6 +184,10 @@ tests-smoke test-smoke smoke: ### Run smoke tests only (critical path)
 .PHONY: tests-smoke-headed test-smoke-headed smoke-headed
 tests-smoke-headed test-smoke-headed smoke-headed: ### Run smoke tests with browser visible
 	cd $(E2E_DIR) && npx playwright test tests/smoke.spec.js --headed
+
+.PHONY: test-quick
+test-quick: ### Quick test - backend only (fastest)
+	cd $(BACKEND_DIR) && ./vendor/bin/pest --exclude-group=e2e
 
 # =============================================================================
 # Cache / Cleanup

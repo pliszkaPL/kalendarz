@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * Playwright Configuration for Kalendarz MVP
+ * 
+ * Local development: expects servers to be running (make dev)
+ * CI environment: no webServer config (started by GitHub Actions)
+ */
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
@@ -7,9 +13,12 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: 'html',
+  
   use: {
-    baseURL: 'http://localhost',
+    baseURL: 'http://127.0.0.1:5173',
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
 
   projects: [
@@ -19,10 +28,13 @@ export default defineConfig({
     },
   ],
 
-  webServer: process.env.CI ? undefined : {
-    command: 'echo "Using external services"',
-    url: 'http://localhost',
-    reuseExistingServer: true,
-    timeout: 120 * 1000,
-  },
+  // No webServer config - expects external services
+  // Backend: http://127.0.0.1:8000
+  // Frontend: http://127.0.0.1:5173 (Vite dev server)
+  // 
+  // To run tests locally:
+  //   1. Start servers: make dev (in one terminal)
+  //   2. Run tests: make test-e2e (in another terminal)
+  // 
+  // Or use: make test-all (automatically starts backend + frontend)
 });

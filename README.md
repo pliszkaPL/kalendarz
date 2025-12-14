@@ -6,17 +6,18 @@ Calendar application with innovative template system for managing important date
 
 - PHP 8.4+ with extensions:
   - mbstring
-  - sqlite3 (or pdo_sqlite)
+  - **sqlite3** (or pdo_sqlite) - **REQUIRED**
   - pdo
 - Node.js 22+
 - npm 11+
-- SQLite3
 
 ### Installing PHP SQLite Extension
 
+⚠️ **REQUIRED**: Without SQLite extension, the application won't work.
+
 **Debian/Ubuntu:**
 ```bash
-sudo apt-get install php8.4-sqlite3 php8.4-pdo
+sudo apt-get install php8.4-sqlite3 php8.4-pdo php8.4-mbstring
 ```
 
 **macOS (Homebrew):**
@@ -30,6 +31,8 @@ brew install php@8.4
 php -m | grep -i sqlite
 # Should show: pdo_sqlite and sqlite3
 ```
+
+**If not installed:** Setup and tests will fail with "could not find driver" error.
 
 ## Quick Start
 
@@ -109,9 +112,11 @@ make migrate-fresh     # Fresh migration (drops tables)
 make migrate-seed      # Fresh migration with seeders
 
 # Testing
-make test              # Run all tests
+make test              # Run backend tests only
+make test-all          # Run all tests with auto-started backend
 make test-backend      # Run backend tests (PEST)
-make test-e2e          # Run E2E tests (Playwright)
+make test-quick        # Quick backend tests
+make test-e2e          # Run E2E tests (requires running servers!)
 make test-e2e-headed   # Run E2E with visible browser
 make test-e2e-ui       # Run E2E with Playwright UI
 make smoke             # Run smoke tests only
@@ -134,19 +139,49 @@ make composer cmd="..."  # Run composer command
 
 ## Testing
 
+### Backend Tests (PEST)
 ```bash
-# Backend tests (PEST)
-make test-backend
+make test              # Quick - backend tests only
+make test-backend      # Same as above
+make test-quick        # Alias for quick tests
+```
 
-# E2E tests (Playwright)
+### E2E Tests (Playwright)
+
+**Option 1: Manual (recommended for development)**
+```bash
+# Terminal 1: Start servers
+make dev
+
+# Terminal 2: Run E2E tests
 make test-e2e              # Headless mode
 make test-e2e-headed       # With browser visible
 make test-e2e-ui           # Interactive UI mode
 make smoke                 # Quick smoke tests
-
-# Watch specific test
-cd e2e-tests && npx playwright test tests/smoke.spec.js --headed
 ```
+
+**Option 2: Automatic (for CI-like testing)**
+```bash
+make test-all              # Runs backend tests + starts backend + runs E2E
+```
+
+### Individual Test Files
+```bash
+cd e2e-tests && npx playwright test tests/smoke.spec.js --headed
+cd e2e-tests && npx playwright test tests/authentication.spec.js
+```
+
+### Why E2E tests need running servers
+
+E2E tests make real HTTP requests to:
+- Backend API: `http://127.0.0.1:8000`
+- Frontend: `http://localhost` (via nginx in CI, or Vite dev server)
+
+The `make test-all` command automatically:
+1. Runs backend unit tests
+2. Starts backend server
+3. Runs E2E tests
+4. Stops backend server
 
 ## Project Structure
 
