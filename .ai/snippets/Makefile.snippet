@@ -1,0 +1,29 @@
+<correct>
+# Security audit for all packages ( group of command title )
+
+## Composer audit tooling ( command title )
+.PHONY: audit security-audit security check-security
+audit security-audit security check-security: ### Run security audit on installed packages (command comment)
+	$(COMPOSER) audit
+</correct>
+
+<incorrect>
+# Security audit for all packages
+# Example: make audit - single # for command name
+.PHONY: audit
+audit: ## Run security audit on installed packages
+	@echo "$(CYAN)🔒 Running security audit...$(RESET)" - additional comments not needed (if you want add comments make a bin/scripts bash file and run that file instead)
+	@$(COMPOSER) audit || true
+	@echo ""
+	@echo "$(GREEN)✅ Security audit completed$(RESET)"
+
+# Aliases for audit - same commands in multiple sections
+.PHONY: security-audit
+security-audit: audit
+
+.PHONY: security - same commands in multiple sections
+security: audit
+
+.PHONY: check-security
+check-security: audit - same commands in multiple sections
+</incorrect>

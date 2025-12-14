@@ -1,554 +1,95 @@
-# Agenci AI - Kalendarz MVP
+# AGENTS.md
 
-Data: 2025-11-16
+- General info about the project are available in @PROJECT.md
+- General project Minimum Viable Product (MVP) is available in @.ai/mvp.md - this document is a business concept for a product with just enough features to satisfy early customers and provide feedback for future development
+- General project Product Requirements Document (PRD) is available in @.ai/prd.md - this document outlines a product's purpose, features, functionality, and behavior.
+- Architecture Decision Record (ADR) lives in docs/adr - when you make decision about some sort of library to solve something please provide new ADR for the selected solution 
+- Project structure/architecture is described in @.ai/architecture.md
+- Project TechStack is available in @.ai/tech-stack.md
+- Project documentation the C4 diagram should be created and maintained by https://docs.structurizr.com/cli
+- Always start the work with make the documentation then tests and then implementation
+- Validate your solution and progress each time you implement a task from .ai/docs/work/
 
-## Wprowadzenie
+## Package / library / image version
 
-Ten dokument opisuje zestaw specjalistycznych agentów AI przygotowanych do pracy nad projektem Kalendarz MVP. Każdy agent jest ekspertem w swojej dziedzinie i posiada dogłębną wiedzę na temat stosowanych technologii oraz kontekstu biznesowego aplikacji.
+- always try to be most specific for example - FROM php:8.4.15-cli-alpine3.23 not FROM php:8.4cli
 
-## Kontekst Projektu
+## AI Rules to start with
 
-Kalendarz MVP to aplikacja webowa do zarządzania ważnymi datami i wydarzeniami z innowacyjnym systemem szablonów. Kluczowe cechy projektu:
-- **Frontend**: Vue.js 3 + Tailwind CSS + Vue Router
-- **Backend**: Laravel 12 + Laravel Sanctum + SQLite
-- **Infrastruktura**: Docker + Traefik + Nginx
-- **Testowanie**: Playwright (E2E) + PEST/PHPUnit (backend)
-- **CI/CD**: GitHub Actions
+- Always start investigate how the project behave on the Makefile from there you should run tests and verify your work
+- Try to start your work with failing test then implement the solution
+- Try to start your work with Business or Application Contract and then add the solution to fill that contract
+- If user provides you an contract you are not allowed to change it 
+- You could find code snippets on base you could provide better solution in @.ai/snippets/* where the name of dir / file should be corresponding to the snipped you are looking for, for example find files having PHP and generic there are in path @snippetsPath/PHP/Generic/index.php
+- When providing the TODO plan for the user show hin also the Contract you will create
+- When creating documentation for yourself use the LLMs.txt standard see https://llmstxt.org/ all this documentation should be available in .ai/llms
 
-## Agenci
+## Code rules
 
-### 1. Agent Frontend - Vue.js Specialist
+### General
 
-**Nazwa**: `vue-frontend-agent`
+- Always try to create contract like `Intervace`, `AbstractClass`, `DTO`, `ValueObject`, `Collection`, `Type in TS` rather that simple primitive obsession
+- Always prefer Type safe code
+- Always try to create Generic code and for languages like PHP use sth like Psalm to describe the code 
+- Always try to write code that has SingleResponsibility in mind `SRP`
+- Always try to make code that is Open for extension and closed for modification `OPC` - prefer design patterns like `Policy`, `Specification Pattern`, `Builder`, `Chain of responsibility`  
+- Always prefer clean code that is not related to framework / library
+- If you need to use framework or library use it as Interface contract so that the business says what to do so in `Declarative` way
+- IF you use any linting tool or code quality tool or testing tool always try to add its bages to the README.md so its looks nice and provide actual information about the project
 
-**Zakres odpowiedzialności**:
-- Rozwój komponentów Vue.js 3 (Composition API)
-- Implementacja reaktywnego systemu szablonów
-- Zarządzanie stanem aplikacji
-- Integracja z Vue Router
-- Stylowanie z Tailwind CSS
-- Komunikacja z API przez Axios
-- Optymalizacja wydajności komponentów
+### PHP
 
-**Kluczowa wiedza**:
-- Vue.js 3 Composition API (ref, reactive, computed, watch)
-- Vue Router 4 (guards, lazy loading)
-- Tailwind CSS utilities i customizacja
-- Axios interceptors i error handling
-- Vite configuration i optimization
-- Responsive design patterns
-- Accessibility (a11y) best practices
+- use PHP 8.4 for building a code
+- always add declare(strict_types=1); 
+- for PHPStan rules and changes check https://phpstan.org/config-reference
 
-**Typowe zadania**:
-- Tworzenie widoku kalendarza (siatka miesięczna)
-- Implementacja edytora szablonów z live preview
-- Budowa formularzy do dodawania wydarzeń
-- Tworzenie systemu modal-ów
-- Implementacja wyszukiwarki
-- Zarządzanie uwierzytelnianiem po stronie frontend-u
+## Commit messages and branches
 
-**Pliki robocze**:
-- `frontend/src/views/*.vue`
-- `frontend/src/components/**/*.vue`
-- `frontend/src/services/auth.js`
-- `frontend/tailwind.config.js`
-- `frontend/vite.config.js`
+- Git workflow, branch naming conventions, and commit message standards are documented in @.ai/git.md
+- Follow the branch naming convention: `<type>/<ticket-id>-<short-description>`
+- Use conventional commit messages: `<type>(<scope>): <subject>`
+- Default workflow: GitHub Flow (feature branches from main, PR for all changes)
 
-**Polecenia**:
-```bash
-# Rozwój lokalny
-cd frontend && npm run dev
+## Tooling Versions
 
-# Build produkcyjny
-cd frontend && npm run build
+- Always pin to specific version when generate code
+- Try to investigate compatibility of versions when introduce new tool
+- Always try to gen newer possible version when installing new tool ( so check the web for actual newest stable release )
+- For developers tooling you could omit the stable release if needed ( for example the documentation says to use beta or dev )
 
-# Preview buildu
-cd frontend && npm run preview
-```
+## Tooling architecture
 
----
+- Tools like `make`, `docker`, `docker compose` commands could be run from host machine
+- All other tools like `pint`, `composer`, `npm`, `php`, should be run via configured docker commands or inside actual project Docker images
+- We prefer this structure of calling `make` -> `bash scripts` | `docker compose` | `docker` | `docker exec with pinned image version`
+- The CI/CD layer should only execute the `make` commands or `bash scripts` if possible even if that requires add the `ci-sth` commands to Makefile
 
-### 2. Agent Backend - Laravel Specialist
+### Makefile rules
 
-**Nazwa**: `laravel-backend-agent`
+- We try to use as simple as possible makefile commands 
+- Each command has `PHONY: command-name` before the command itself
+- Try to add multiple commands for same action to allow user make commands more naturally for example: `deploy-prod, deploy-production, deploy-to-prod, deploy-to-production` this commands are exact same see @.ai/snippets/Makefile
+- Try to be consistent with command naming try to use same prefix or suffix strategy each time for example `quality` runs all quality tests and the you have `quality-stan` that runs PHPStan `quality-psalm` that runs PHP PSALM, same for `fix` and `fix-{suffix}`
+- The Make help method should be build upon of the makefile itself not an actual echo documentation because as we know Makefile will change but the according help like @echo wont, so always generate actual help base on the makefile itself
+- You could use comments above each Make command to add extra context and always try to make it in "example" way so the user see the actual contract
 
-**Zakres odpowiedzialności**:
-- Rozwój REST API w Laravel 12
-- Projektowanie modeli Eloquent i relacji
-- Implementacja kontrolerów i walidacji
-- Zarządzanie migracjami bazy danych
-- Konfiguracja Laravel Sanctum
-- Tworzenie seeders i factories
-- Implementacja logiki biznesowej
+## Docker / Docker compose rules
 
-**Kluczowa wiedza**:
-- Laravel 12 conventions i best practices
-- Eloquent ORM (relacje, scopes, accessors/mutators)
-- Laravel Sanctum SPA authentication
-- Resource Controllers i API Resources
-- Form Request Validation
-- Database migrations i seeding
-- SQLite specifics i optymalizacja
-- CORS configuration
+- make multiple steps Docker images ( steps for environments dev, test, stage ,prod )
+- all docker related files like configs and Dockerfiles should be stored in docker 
+- don't add version to docker-compose files as is not required anymore
 
-**Typowe zadania**:
-- Tworzenie modeli (Event, Template, User)
-- Implementacja CRUD dla wydarzeń i szablonów
-- Logika powtarzalnych wydarzeń
-- System archiwizacji szablonów
-- Endpointy uwierzytelniania
-- Walidacja złożonych struktur danych szablonów
-- Implementacja wyszukiwarki
+## Readme and documentations
 
-**Pliki robocze**:
-- `backend/app/Models/*.php`
-- `backend/app/Http/Controllers/Api/*.php`
-- `backend/app/Http/Requests/*.php`
-- `backend/database/migrations/*.php`
-- `backend/routes/api.php`
-- `backend/config/*.php`
+- documentation is located in docs 
+- always create docs before starting work so that user can verify modify and accept or decline the work
+- always start searching for actual documentation before start
+- always create docs that are readable to AI agents and uses small amount of tokens
+- Don't create complex large readme documentation
+- Create Code that is self describing, so rather than the readme or helper functions use proper functions names and functions that uses some sort of regression to determine what is possible
+- When create a decision about technology / framework etc create an ADR document in docs/adr 
 
-**Polecenia**:
-```bash
-# Uruchomienie serwera dev
-cd backend && php artisan serve
+## Playwright rules - create E2E tests and Regression tests
 
-# Migracje
-cd backend && php artisan migrate
-
-# Rollback
-cd backend && php artisan migrate:rollback
-
-# Fresh migration z seedem
-cd backend && php artisan migrate:fresh --seed
-
-# Tworzenie modelu z migracją i kontrolerem
-cd backend && php artisan make:model Event -mcr
-
-# Cache clear
-cd backend && php artisan config:clear && php artisan cache:clear
-```
-
----
-
-### 3. Agent DevOps - Infrastructure Specialist
-
-**Nazwa**: `devops-infrastructure-agent`
-
-**Zakres odpowiedzialności**:
-- Konfiguracja Docker i Docker Compose
-- Zarządzanie Traefik routing
-- Konfiguracja Nginx dla frontend-u
-- Setup GitHub Actions workflows
-- Optymalizacja Dockerfile
-- Zarządzanie volumes i networks
-- Monitoring i logging
-
-**Kluczowa wiedza**:
-- Docker best practices (multi-stage builds, layer caching)
-- Docker Compose orchestration
-- Traefik 3 configuration (routers, services, middleware)
-- Nginx configuration dla SPA
-- GitHub Actions syntax i secrets
-- Environment variables management
-- Docker networking
-- Volume management i persistence
-
-**Typowe zadania**:
-- Optymalizacja Dockerfile dla szybszych buildów
-- Konfiguracja SSL/TLS przez Traefik
-- Setup środowisk staging/production
-- Implementacja health checks
-- Konfiguracja backupów SQLite
-- Dodawanie nowych serwisów (Redis, queue workers)
-- Troubleshooting problemów z kontenerami
-
-**Pliki robocze**:
-- `docker-compose.yml`
-- `frontend/Dockerfile`
-- `backend/Dockerfile`
-- `frontend/nginx.conf`
-- `.github/workflows/*.yml`
-- `Makefile`
-
-**Polecenia**:
-```bash
-# Build i start wszystkich serwisów
-docker compose up -d --build
-
-# Stop i usunięcie kontenerów
-docker compose down
-
-# Logi
-docker compose logs -f backend
-docker compose logs -f frontend
-
-# Exec do kontenera
-docker compose exec backend bash
-docker compose exec backend php artisan migrate
-
-# Restart serwisu
-docker compose restart backend
-
-# Sprawdzenie statusu
-docker compose ps
-```
-
----
-
-### 4. Agent QA - Testing Specialist
-
-**Nazwa**: `qa-testing-agent`
-
-**Zakres odpowiedzialności**:
-- Tworzenie testów E2E w Playwright
-- Pisanie testów backend w PEST/PHPUnit
-- Testowanie krytycznych flow-ów użytkownika
-- Testy integracyjne API
-- Testy jednostkowe logiki biznesowej
-- Code coverage monitoring
-- Performance testing
-
-**Kluczowa wiedza**:
-- Playwright API (locators, assertions, fixtures)
-- PEST syntax i features
-- PHPUnit assertions
-- Laravel testing utilities
-- Database factories i seeding dla testów
-- Mocking i stubbing
-- Test isolation strategies
-- CI/CD test integration
-
-**Typowe zadania**:
-- Testy rejestracji i logowania
-- Testy CRUD wydarzeń i szablonów
-- Testy systemu szablonów (live preview, archiwizacja)
-- Testy wydarzeń powtarzalnych
-- Testy wyszukiwarki
-- Testy walidacji formularzy
-- Testy autoryzacji (Sanctum tokens)
-
-**Pliki robocze**:
-- `e2e-tests/tests/*.spec.js`
-- `backend/tests/Feature/*.php`
-- `backend/tests/Unit/*.php`
-- `e2e-tests/playwright.config.js`
-- `backend/phpunit.xml`
-
-**Polecenia**:
-```bash
-# E2E testy Playwright
-cd e2e-tests && npm test
-cd e2e-tests && npm run test:headed
-cd e2e-tests && npm run test:ui
-
-# Backend testy PEST
-cd backend && ./vendor/bin/pest
-cd backend && ./vendor/bin/pest --group=e2e
-cd backend && ./vendor/bin/pest --coverage
-
-# PHPUnit
-cd backend && php artisan test
-cd backend && php artisan test --filter=AuthTest
-
-# Specific test
-cd e2e-tests && npx playwright test tests/authentication.spec.js
-```
-
----
-
-### 5. Agent Database - Data Architect
-
-**Nazwa**: `database-architect-agent`
-
-**Zakres odpowiedzialności**:
-- Projektowanie struktury bazy danych
-- Optymalizacja zapytań SQL
-- Tworzenie migracji
-- Projektowanie relacji między tabelami
-- Data modeling dla systemu szablonów
-- Strategia indeksowania
-- Data seeding i fixtures
-
-**Kluczowa wiedza**:
-- Database design principles (normalizacja, denormalizacja)
-- SQLite capabilities i ograniczenia
-- Eloquent relationships (one-to-many, many-to-many, polymorphic)
-- JSON columns w SQLite
-- Query optimization
-- Indexes i performance
-- Migration strategies (up/down, rollback safety)
-
-**Typowe zadania**:
-- Projektowanie struktury tabel (users, events, templates)
-- Implementacja systemu szablonów w bazie
-- Przechowywanie zmiennych szablonów (JSON fields)
-- System archiwizacji szablonów
-- Relacje wydarzeń powtarzalnych
-- Optymalizacja zapytań kalendarza
-- Seeders z 20 predefiniowanymi szablonami
-
-**Pliki robocze**:
-- `backend/database/migrations/*.php`
-- `backend/database/seeders/*.php`
-- `backend/database/factories/*.php`
-- `backend/app/Models/*.php` (relacje)
-
-**Przykładowa struktura tabel**:
-```
-users
-  - id
-  - email
-  - password
-  - created_at, updated_at
-
-templates
-  - id
-  - user_id (nullable dla predefiniowanych)
-  - name
-  - icon
-  - background_color
-  - text_color
-  - fields (JSON: [{name, type, operation}])
-  - display_format
-  - is_archived
-  - created_at, updated_at
-
-events
-  - id
-  - user_id
-  - template_id
-  - title
-  - description
-  - data (JSON: wartości pól z szablonu)
-  - created_at, updated_at
-
-event_dates
-  - id
-  - event_id
-  - date
-  - created_at, updated_at
-
-recurrence_rules (opcjonalnie)
-  - id
-  - event_id
-  - type (daily, weekly, monthly, custom)
-  - interval
-  - params (JSON)
-  - created_at, updated_at
-```
-
----
-
-### 6. Agent Full Stack - Integration Specialist
-
-**Nazwa**: `fullstack-integration-agent`
-
-**Zakres odpowiedzialności**:
-- Integracja frontend-u z backend-em
-- Implementacja flow-ów end-to-end
-- CORS configuration
-- Authentication flow (Sanctum)
-- Error handling na całym stacku
-- API contract design
-- Data flow optimization
-
-**Kluczowa wiedza**:
-- REST API design patterns
-- SPA authentication z Sanctum
-- CORS policies
-- HTTP status codes i error handling
-- Request/response transformation
-- API versioning
-- Security best practices
-- Performance optimization (N+1 queries, caching)
-
-**Typowe zadania**:
-- Implementacja login/register flow
-- Integracja CRUD wydarzeń
-- Live preview szablonów (frontend + backend)
-- Wyszukiwarka (frontend UI + backend query)
-- Error handling i user feedback
-- Loading states i optimistic updates
-- Token refresh strategies
-
-**Pliki robocze**:
-- `frontend/src/services/*.js`
-- `backend/app/Http/Controllers/Api/*.php`
-- `backend/routes/api.php`
-- `backend/config/cors.php`
-- `backend/config/sanctum.php`
-
-**Przykładowe endpointy API**:
-```
-POST   /api/register          - rejestracja
-POST   /api/login             - logowanie
-POST   /api/logout            - wylogowanie
-GET    /api/user              - pobranie zalogowanego użytkownika
-
-GET    /api/templates         - lista szablonów
-POST   /api/templates         - utworzenie szablonu
-GET    /api/templates/{id}    - szczegóły szablonu
-PUT    /api/templates/{id}    - edycja szablonu
-POST   /api/templates/{id}/archive - archiwizacja
-DELETE /api/templates/{id}    - usunięcie
-
-GET    /api/events            - lista wydarzeń (z filtracją po dacie)
-POST   /api/events            - utworzenie wydarzenia
-GET    /api/events/{id}       - szczegóły wydarzenia
-PUT    /api/events/{id}       - edycja wydarzenia
-DELETE /api/events/{id}       - usunięcie wydarzenia
-GET    /api/events/search     - wyszukiwanie
-
-GET    /api/calendar/{year}/{month} - wydarzenia dla miesiąca
-```
-
----
-
-## Workflow Współpracy Agentów
-
-### Scenariusz 1: Dodanie nowej funkcji (np. powiadomienia)
-
-1. **Database Architect** - projektuje strukturę tabel dla powiadomień
-2. **Laravel Backend** - implementuje migracje, modele, kontrolery
-3. **Vue Frontend** - tworzy UI dla wyświetlania powiadomień
-4. **Full Stack Integration** - łączy frontend z backend-em
-5. **QA Testing** - pisze testy E2E i unit testy
-6. **DevOps Infrastructure** - ewentualne zmiany w infrastrukturze (kolejki)
-
-### Scenariusz 2: Optymalizacja wydajności
-
-1. **Database Architect** - analiza slow queries, dodanie indeksów
-2. **Laravel Backend** - eager loading, query optimization
-3. **Vue Frontend** - lazy loading komponentów, debouncing
-4. **DevOps Infrastructure** - dodanie Redis dla cache
-5. **QA Testing** - performance tests
-
-### Scenariusz 3: Deployment na produkcję
-
-1. **DevOps Infrastructure** - przygotowanie środowiska produkcyjnego
-2. **Laravel Backend** - konfiguracja .env production
-3. **Vue Frontend** - build produkcyjny
-4. **Full Stack Integration** - smoke tests API
-5. **QA Testing** - regression tests
-6. **DevOps Infrastructure** - deployment i monitoring
-
-## Konwencje Komunikacji
-
-### Przekazywanie kontekstu między agentami
-
-Przy przełączaniu między agentami, zawsze przekazuj:
-- **Task description** - co ma zostać zrobione
-- **Related files** - które pliki są powiązane z zadaniem
-- **Dependencies** - które części kodu są zależne
-- **Testing requirements** - jakie testy powinny być napisane
-- **Documentation needs** - co wymaga udokumentowania
-
-### Format przekazania zadania
-
-```markdown
-## Przekazanie do: [Nazwa Agenta]
-
-**Kontekst**: [Krótki opis co zostało zrobione do tej pory]
-
-**Zadanie**: [Szczegółowy opis co ma zostać zrobione]
-
-**Pliki do modyfikacji**:
-- path/to/file1.ext
-- path/to/file2.ext
-
-**Zależności**:
-- [Lista zależności od innych komponentów]
-
-**Kryteria akceptacji**:
-- [ ] Kryterium 1
-- [ ] Kryterium 2
-
-**Testy wymagane**:
-- [ ] Test 1
-- [ ] Test 2
-```
-
-## Best Practices
-
-### Dla wszystkich agentów:
-
-1. **Zawsze czytaj dokumentację projektu** przed rozpoczęciem pracy (.ai/prd.md, .ai/tech-stack.md)
-2. **Respektuj konwencje projektu** (PSR-12 dla PHP, Vue style guide)
-3. **Pisz testy** dla każdej nowej funkcjonalności
-4. **Dokumentuj złożoną logikę** w komentarzach
-5. **Commituj atomowe zmiany** z czytelnymi message-ami
-6. **Review kodu** przed finalizacją zadania
-7. **Sprawdź CI/CD** przed zamknięciem taska
-
-### Code Style Guides:
-
-**PHP/Laravel**:
-- PSR-12 coding standard
-- Laravel best practices (use Form Requests, Resources, etc.)
-- Type hints wszędzie gdzie to możliwe
-- Eloquent conventions (singular model names)
-
-**Vue.js**:
-- Vue 3 Style Guide (official)
-- Composition API jako standard
-- Single File Components (.vue)
-- Props validation required
-- Emits declaration required
-
-**JavaScript**:
-- ESLint configuration
-- Camel case dla zmiennych i funkcji
-- Arrow functions preferred
-- Async/await over promises
-
-## Narzędzia Pomocnicze
-
-### Linty i formattery
-
-```bash
-# PHP
-cd backend && ./vendor/bin/pint
-
-# JavaScript (jeśli dodany)
-cd frontend && npm run lint
-cd frontend && npm run format
-
-# Vue components
-cd frontend && npm run lint:vue
-```
-
-### Debugging
-
-```bash
-# Laravel logs
-cd backend && tail -f storage/logs/laravel.log
-
-# Vue devtools - zainstaluj rozszerzenie przeglądarki
-
-# Traefik dashboard
-open http://localhost:8080
-```
-
-## Zasoby i Dokumentacja
-
-### Oficjalna dokumentacja:
-- Vue.js 3: https://vuejs.org/guide/
-- Laravel 12: https://laravel.com/docs/12.x
-- Tailwind CSS: https://tailwindcss.com/docs
-- Playwright: https://playwright.dev/
-- PEST: https://pestphp.com/
-- Docker: https://docs.docker.com/
-- Traefik: https://doc.traefik.io/traefik/
-
-### Dokumentacja projektu:
-- `.ai/prd.md` - Product Requirements Document
-- `.ai/tech-stack.md` - Technology Stack Overview
-- `.ai/mvp.md` - MVP Scope
-- `README.md` - Project setup i development
-- `SETUP.md` - Detailed setup instructions
-
----
-
-**Ostatnia aktualizacja**: 2025-11-16
-**Wersja**: 1.0.0
+- for each page create a Page Object Model ( POM ) - https://playwright.dev/docs/pom - this page should have full configuration of how interact with the page so basically is a abstraction layer between what vs how ( what is the methods names how is the implementation )
+- when we integrates pages with forms create methods that allow select from lists by id, name, first, last or random element of the list - make this as class 
