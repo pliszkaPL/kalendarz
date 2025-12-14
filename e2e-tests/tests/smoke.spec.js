@@ -46,12 +46,26 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Register a new user
+    // Debug: Check what's on the page
+    const title = await page.title();
+    console.log('Page title:', title);
+    
+    // Wait for Vue to mount first
+    await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 5000 });
+
+    // Click Register tab to show registration form
     await page.click('button:has-text("Register")');
+    
+    // Wait for registration form to appear
+    await page.waitForSelector('input[id="register-name"]', { timeout: 3000 });
+
+    // Fill registration form
     await page.fill('input[id="register-name"]', testName);
     await page.fill('input[id="register-email"]', testEmail);
     await page.fill('input[id="register-password"]', testPassword);
     await page.fill('input[id="register-password-confirm"]', testPassword);
+    
+    // Submit form
     await page.click('button[type="submit"]:has-text("Register")');
 
     // Should redirect to calendar
@@ -73,11 +87,16 @@ test.describe('Smoke Tests - Critical Path', () => {
   });
 
   test('SMOKE: Calendar displays with navigation and grid', async ({ page }) => {
-    // Login first
+    // Navigate and wait for app
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 5000 });
 
+    // Click Register tab
     await page.click('button:has-text("Register")');
+    await page.waitForSelector('input[id="register-name"]', { timeout: 3000 });
+
+    // Register new user
     const timestamp = Date.now();
     const email = `smoketest2${timestamp}@example.com`;
     await page.fill('input[id="register-name"]', 'Smoke Test 2');
@@ -113,11 +132,16 @@ test.describe('Smoke Tests - Critical Path', () => {
   });
 
   test('SMOKE: User can add an entry to calendar', async ({ page }) => {
-    // Login first
+    // Navigate and wait for app
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('h1:has-text("Kalendarz")', { timeout: 5000 });
 
+    // Click Register tab
     await page.click('button:has-text("Register")');
+    await page.waitForSelector('input[id="register-name"]', { timeout: 3000 });
+
+    // Register new user
     const timestamp = Date.now();
     const email = `smoketest3${timestamp}@example.com`;
     await page.fill('input[id="register-name"]', 'Smoke Test 3');
