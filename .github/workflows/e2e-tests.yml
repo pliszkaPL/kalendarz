@@ -162,13 +162,17 @@ jobs:
       - name: Wait for frontend to be ready
         run: |
           echo "Waiting for frontend to serve content..."
-          timeout 90 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "Kalendarz"; do echo "Waiting for frontend..."; sleep 3; done'
+          # Check for <title>Kalendarz</title> which exists in static HTML
+          # The body text "Kalendarz" only appears after Vue.js mounts (requires browser JS execution)
+          timeout 90 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do echo "Waiting for frontend..."; sleep 3; done'
           echo "Frontend is ready!"
 
       - name: Debug - Show frontend response
+        if: always()
         run: |
           echo "=== Frontend HTML response ==="
           curl -s -H "Host: kalendarz.loc" http://localhost | head -100
+          echo ""
           echo "=== Frontend container logs ==="
           docker compose logs frontend --tail 30
 
@@ -258,7 +262,8 @@ jobs:
       - name: Wait for frontend to be ready
         run: |
           echo "Waiting for frontend to serve content..."
-          timeout 90 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "Kalendarz"; do echo "Waiting for frontend..."; sleep 3; done'
+          # Check for <title>Kalendarz</title> which exists in static HTML
+          timeout 90 bash -c 'until curl -f -s -H "Host: kalendarz.loc" http://localhost 2>/dev/null | grep -q "<title>Kalendarz</title>"; do echo "Waiting for frontend..."; sleep 3; done'
           echo "Frontend is ready!"
 
       - name: Set up Node.js
