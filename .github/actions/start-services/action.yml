@@ -1,0 +1,40 @@
+name: 'Start Application Services'
+description: 'Starts Laravel backend and nginx frontend server'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up hosts file
+      shell: bash
+      run: |
+        echo "127.0.0.1 kalendarz.loc" | sudo tee -a /etc/hosts
+
+    - name: Start Laravel backend
+      shell: bash
+      run: |
+        cd backend
+        php artisan serve --host=127.0.0.1 --port=8000 &
+        sleep 3
+        curl -f http://127.0.0.1:8000/api/health || exit 1
+
+    - name: Install and configure nginx
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nginx
+        sudo rm /etc/nginx/sites-enabled/default
+        sudo mkdir -p /var/www/frontend
+        sudo cp -r frontend/dist/* /var/www/frontend/
+        sudo cp nginx.ci.conf /etc/nginx/sites-enabled/kalendarz.conf
+        sudo nginx -t
+        sudo systemctl restart nginx
+
+    - name: Wait for services to be ready
+      shell: bash
+      run: |
+        echo "Testing backend health..."
+        curl -f http://127.0.0.1:8000/api/health
+        echo ""
+        echo "Testing frontend through nginx..."
+        timeout 30 bash -c 'until curl -f http://localhost/ 2>/dev/null | grep -q "Kalendarz"; do sleep 1; done'
+        echo "Services are ready!"

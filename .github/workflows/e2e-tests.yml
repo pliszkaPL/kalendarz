@@ -3,13 +3,11 @@ name: E2E Tests
 on:
   push:
     branches:
-      - master
       - main
       - 'fix-*'
       - 'feature-*'
   pull_request:
     branches:
-      - master
       - main
 
 jobs:
@@ -20,128 +18,29 @@ jobs:
     permissions:
       contents: read
 
+    env:
+      CI: true
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Set up hosts file
-        run: |
-          echo "127.0.0.1 kalendarz.loc" | sudo tee -a /etc/hosts
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+      - name: Setup Laravel Environment
+        uses: ./.github/actions/setup-laravel-env
+
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
+
+      - name: Start Services
+        uses: ./.github/actions/start-services
+
+      - name: Setup Playwright
+        uses: ./.github/actions/setup-playwright
         with:
-          php-version: '8.4'
-          extensions: mbstring, sqlite3, pdo_sqlite
-          coverage: none
-          tools: composer:2.8.4
-
-      - name: Get Composer Cache Directory
-        id: composer-cache
-        run: |
-          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            e2e-tests/package-lock.json
-
-      - name: Install backend dependencies
-        run: |
-          cd backend
-          composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Set up backend .env
-        run: |
-          cp backend/.env.example backend/.env
-          sed -i 's/APP_URL=http:\/\/localhost/APP_URL=http:\/\/localhost/' backend/.env
-          sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=cookie/' backend/.env
-          sed -i 's/SESSION_DOMAIN=null/SESSION_DOMAIN=localhost/' backend/.env
-          echo "SANCTUM_STATEFUL_DOMAINS=localhost,kalendarz.loc" >> backend/.env
-
-      - name: Generate application key
-        run: |
-          cd backend
-          php artisan key:generate
-
-      - name: Run migrations
-        run: |
-          cd backend
-          touch database/database.sqlite
-          php artisan migrate --force
-
-      - name: Start Laravel backend
-        run: |
-          cd backend
-          php artisan serve --host=127.0.0.1 --port=8000 &
-          sleep 3
-          curl -f http://127.0.0.1:8000/api/health || exit 1
-
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
-
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
-
-      - name: Install and configure nginx
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nginx
-          sudo rm /etc/nginx/sites-enabled/default
-          sudo mkdir -p /var/www/frontend
-          sudo cp -r frontend/dist/* /var/www/frontend/
-          sudo cp nginx.ci.conf /etc/nginx/sites-enabled/kalendarz.conf
-          sudo nginx -t
-          sudo systemctl restart nginx
-
-      - name: Wait for services to be ready
-        run: |
-          echo "Testing backend health..."
-          curl -f http://127.0.0.1:8000/api/health
-          echo ""
-          echo "Testing frontend through nginx..."
-          timeout 30 bash -c 'until curl -f http://localhost/ 2>/dev/null | grep -q "Kalendarz"; do sleep 1; done'
-          echo "Services are ready!"
-
-      - name: Install E2E test dependencies
-        run: |
-          cd e2e-tests
-          npm ci
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('e2e-tests/package-lock.json') }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          cd e2e-tests
-          npx playwright install chromium --with-deps
-
-      - name: Install Playwright browser dependencies (if cached)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: |
-          cd e2e-tests
-          npx playwright install-deps chromium
+          use-cache: 'true'
 
       - name: Run smoke tests
         run: |
@@ -152,7 +51,7 @@ jobs:
 
       - name: Upload smoke test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: smoke-test-report
           path: e2e-tests/playwright-report/
@@ -175,114 +74,29 @@ jobs:
     permissions:
       contents: read
 
+    env:
+      CI: true
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Set up hosts file
-        run: |
-          echo "127.0.0.1 kalendarz.loc" | sudo tee -a /etc/hosts
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+      - name: Setup Laravel Environment
+        uses: ./.github/actions/setup-laravel-env
+
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
+
+      - name: Start Services
+        uses: ./.github/actions/start-services
+
+      - name: Setup Playwright
+        uses: ./.github/actions/setup-playwright
         with:
-          php-version: '8.4'
-          extensions: mbstring, sqlite3, pdo_sqlite
-          coverage: none
-          tools: composer:2.8.4
-
-      - name: Get Composer Cache Directory
-        id: composer-cache
-        run: |
-          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            e2e-tests/package-lock.json
-
-      - name: Install backend dependencies
-        run: |
-          cd backend
-          composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Set up backend .env
-        run: |
-          cp backend/.env.example backend/.env
-          sed -i 's/APP_URL=http:\/\/localhost/APP_URL=http:\/\/localhost/' backend/.env
-          sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=cookie/' backend/.env
-          sed -i 's/SESSION_DOMAIN=null/SESSION_DOMAIN=localhost/' backend/.env
-          echo "SANCTUM_STATEFUL_DOMAINS=localhost,kalendarz.loc" >> backend/.env
-
-      - name: Generate application key
-        run: |
-          cd backend
-          php artisan key:generate
-
-      - name: Run migrations
-        run: |
-          cd backend
-          touch database/database.sqlite
-          php artisan migrate --force
-
-      - name: Start Laravel backend
-        run: |
-          cd backend
-          php artisan serve --host=127.0.0.1 --port=8000 &
-          sleep 3
-          curl -f http://127.0.0.1:8000/api/health || exit 1
-
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
-
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
-
-      - name: Install and configure nginx
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nginx
-          sudo rm /etc/nginx/sites-enabled/default
-          sudo mkdir -p /var/www/frontend
-          sudo cp -r frontend/dist/* /var/www/frontend/
-          sudo cp nginx.ci.conf /etc/nginx/sites-enabled/kalendarz.conf
-          sudo nginx -t
-          sudo systemctl restart nginx
-
-      - name: Wait for services to be ready
-        run: |
-          echo "Testing backend health..."
-          curl -f http://127.0.0.1:8000/api/health
-          echo ""
-          echo "Testing frontend through nginx..."
-          timeout 30 bash -c 'until curl -f http://localhost/ 2>/dev/null | grep -q "Kalendarz"; do sleep 1; done'
-          echo "Services are ready!"
-
-      - name: Install E2E test dependencies
-        run: |
-          cd e2e-tests
-          npm ci
-
-      - name: Install Playwright browsers
-        run: |
-          cd e2e-tests
-          npx playwright install chromium --with-deps
+          use-cache: 'false'
 
       - name: Run full E2E test suite
         run: |
@@ -293,7 +107,7 @@ jobs:
 
       - name: Upload full test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: full-test-report
           path: e2e-tests/playwright-report/
