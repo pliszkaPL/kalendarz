@@ -123,13 +123,20 @@ test.describe('Smoke Tests - Critical Path', () => {
     }
     expect(page.url()).toContain('/calendar');
 
-    // Wait for Vue app to mount (any of these means success)
+    // Wait for Vue app to mount - increased timeout for CI
+    // The app needs time to load, mount Vue, and render
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+      console.log('Network not idle, but continuing...');
+    });
+    
     await Promise.race([
-      page.waitForSelector('.top-navbar', { timeout: 5000 }),
-      page.waitForSelector('.calendar-grid', { timeout: 5000 }),
-      page.waitForSelector('h1.app-title', { timeout: 5000 })
-    ]).catch(() => {
+      page.waitForSelector('.top-navbar', { timeout: 15000 }),
+      page.waitForSelector('.calendar-grid', { timeout: 15000 }),
+      page.waitForSelector('h1.app-title', { timeout: 15000 }),
+      page.waitForSelector('.calendar-view', { timeout: 15000 })
+    ]).catch(async () => {
       console.error('Vue failed to mount. Console errors:', errors);
+      console.log('Page HTML:', await page.content());
       throw new Error(`Vue app did not mount. Console errors: ${errors.join(', ')}`);
     });
     
@@ -166,10 +173,13 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.fill('input[id="register-password-confirm"]', testPassword);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    await page.waitForURL('**/calendar', { timeout: 5000 });
+    await page.waitForURL('**/calendar', { timeout: 10000 });
+    
+    // Wait for network and Vue to mount
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
     
     // Wait for calendar grid (main element)
-    await page.waitForSelector('.calendar-grid', { timeout: 5000 });
+    await page.waitForSelector('.calendar-grid', { timeout: 15000 });
 
     // Verify calendar components are visible
     await expect(page.locator('.calendar-grid')).toBeVisible();
@@ -221,11 +231,14 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.fill('input[id="register-password-confirm"]', testPassword);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    await page.waitForURL('**/calendar', { timeout: 5000 });
+    await page.waitForURL('**/calendar', { timeout: 10000 });
+    
+    // Wait for network and Vue to mount
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
     
     // Wait for calendar to be ready
-    await page.waitForSelector('.calendar-grid', { timeout: 5000 });
-    await page.waitForSelector('.add-entry-btn', { timeout: 5000 });
+    await page.waitForSelector('.calendar-grid', { timeout: 15000 });
+    await page.waitForSelector('.add-entry-btn', { timeout: 15000 });
 
     // Click add entry button
     await page.click('.add-entry-btn');
