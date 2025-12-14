@@ -19,7 +19,7 @@ test('simple entry creation test', async ({ page }) => {
   await page.fill('input[id="register-password-confirm"]', 'password123');
   await page.click('button[type="submit"]:has-text("Register")');
   
-  await page.waitForURL('**/dashboard', { timeout: 10000 });
+  await page.waitForURL('**/calendar', { timeout: 10000 });
   
   // Go to calendar
   await page.goto('/calendar');

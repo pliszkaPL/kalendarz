@@ -23,24 +23,7 @@ test.describe('Calendar Functionality', () => {
     await page.fill('input[id="register-password-confirm"]', testPassword);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
-  });
-
-  test('should navigate to calendar from dashboard', async ({ page }) => {
-    // Click on Calendar link
-    await page.click('a[href="/calendar"]');
-
-    // Wait for calendar page to load
     await page.waitForURL('**/calendar', { timeout: 10000 });
-    
-    // Verify we're on the calendar page
-    expect(page.url()).toContain('/calendar');
-    
-    // Wait for Vue to render (give it time to mount)
-    await page.waitForTimeout(2000);
-    
-    // Verify calendar title is visible
-    await expect(page.locator('h1:has-text("Kalendarz")')).toBeVisible({ timeout: 10000 });
   });
 
   test('should display calendar grid with days', async ({ page }) => {
@@ -271,19 +254,15 @@ test.describe('Calendar Functionality', () => {
     // Verify calendar is visible
     await expect(page.locator('.calendar-grid')).toBeVisible();
     
-    // Navigate to dashboard and logout
-    await page.goto('/dashboard');
-    await page.click('button:has-text("Logout")');
+    // Logout from calendar - accept confirm dialog
+    page.once('dialog', dialog => dialog.accept());
+    await page.click('button:has-text("Wyloguj")');
     await page.waitForURL('/', { timeout: 5000 });
     
     // Login again
     await page.fill('input[id="login-email"]', testEmail);
     await page.fill('input[id="login-password"]', testPassword);
     await page.click('button[type="submit"]:has-text("Login")');
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
-    
-    // Navigate to calendar again
-    await page.click('a[href="/calendar"]');
     await page.waitForURL('**/calendar', { timeout: 10000 });
     await page.waitForTimeout(2000); // Wait for Vue to render
     
