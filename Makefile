@@ -11,6 +11,19 @@ BACKEND_DIR := backend
 FRONTEND_DIR := frontend
 E2E_DIR := e2e-tests
 
+# Composer command (prefer local, fallback to global)
+COMPOSER := $(shell if [ -f $(BACKEND_DIR)/composer.phar ]; then echo "php $(BACKEND_DIR)/composer.phar"; else echo "composer"; fi)
+
+# Backend server
+BACKEND_HOST := 127.0.0.1
+BACKEND_PORT := 8000
+BACKEND_URL := http://$(BACKEND_HOST):$(BACKEND_PORT)
+
+# Frontend server
+FRONTEND_HOST := 127.0.0.1
+FRONTEND_PORT := 5173
+FRONTEND_URL := http://$(FRONTEND_HOST):$(FRONTEND_PORT)
+
 # =============================================================================
 # Help
 # =============================================================================
@@ -25,26 +38,16 @@ help h: ### Show this help message
 
 .PHONY: setup install
 setup install: ### Full project setup (install deps + migrate)
-	@echo "Installing backend dependencies..."
-	cd $(BACKEND_DIR) && composer install
-	@echo ""
-	@echo "Setting up backend .env..."
-	@if [ ! -f $(BACKEND_DIR)/.env ]; then cp $(BACKEND_DIR)/.env.example $(BACKEND_DIR)/.env; fi
-	cd $(BACKEND_DIR) && php artisan key:generate --force
-	@echo ""
-	@echo "Running migrations..."
-	@touch $(BACKEND_DIR)/database/database.sqlite
-	cd $(BACKEND_DIR) && php artisan migrate --force
-	@echo ""
-	@echo "Installing frontend dependencies..."
-	cd $(FRONTEND_DIR) && npm install
-	@echo ""
-	@echo "Setup complete!"
-	@echo "Run 'make dev' to start development servers"
+	@bash scripts/setup.sh
+
+.PHONY: quick-setup quick-start
+quick-setup quick-start: ### Quick setup with script
+	@bash scripts/setup.sh
 
 .PHONY: install-backend
 install-backend: ### Install backend dependencies
-	cd $(BACKEND_DIR) && composer install
+	@if [ ! -f $(BACKEND_DIR)/composer.phar ]; then bash scripts/install-composer.sh; fi
+	cd $(BACKEND_DIR) && $(COMPOSER) install --no-interaction --prefer-dist
 
 .PHONY: install-frontend npm-install
 install-frontend npm-install: ### Install frontend dependencies
@@ -57,9 +60,14 @@ install-e2e setup-e2e: ### Install E2E test dependencies
 
 .PHONY: install-all
 install-all: ### Install all dependencies (backend + frontend + e2e)
-	cd $(BACKEND_DIR) && composer install
+	@if [ ! -f $(BACKEND_DIR)/composer.phar ]; then bash scripts/install-composer.sh; fi
+	cd $(BACKEND_DIR) && $(COMPOSER) install --no-interaction --prefer-dist
 	cd $(FRONTEND_DIR) && npm install
 	cd $(E2E_DIR) && npm install
+
+.PHONY: install-composer
+install-composer: ### Install Composer locally
+	bash scripts/install-composer.sh
 
 # =============================================================================
 # Development
@@ -174,12 +182,88 @@ fix format: ### Fix code style issues
 	cd $(BACKEND_DIR) && ./vendor/bin/pint
 
 # =============================================================================
+# Health Checks & Validation
+# =============================================================================
+
+.PHONY: health health-check
+health health-check: ### Check if backend is running and healthy
+	@echo "Checking backend health at $(BACKEND_URL)/api/health..."
+	@curl -f -s $(BACKEND_URL)/api/health || (echo "Backend is not healthy!" && exit 1)
+	@echo ""
+	@echo "Backend is healthy!"
+
+.PHONY: validate check
+validate check: ### Validate entire setup (deps, config, health)
+	@echo "=== Validating Kalendarz Setup ==="
+	@echo ""
+	@echo "1. Checking PHP version..."
+	@php -v | head -1
+	@echo ""
+	@echo "2. Checking Node.js version..."
+	@node -v
+	@echo ""
+	@echo "3. Checking npm version..."
+	@npm -v
+	@echo ""
+	@echo "4. Checking Composer..."
+	@if [ -f $(BACKEND_DIR)/composer.phar ]; then \
+		echo "✓ Local Composer found"; \
+		php $(BACKEND_DIR)/composer.phar --version; \
+	else \
+		echo "✗ Local Composer not found (run 'make install-composer')"; \
+	fi
+	@echo ""
+	@echo "5. Checking backend dependencies..."
+	@if [ -d $(BACKEND_DIR)/vendor ]; then \
+		echo "✓ Backend dependencies installed"; \
+	else \
+		echo "✗ Backend dependencies missing (run 'make install-backend')"; \
+	fi
+	@echo ""
+	@echo "6. Checking frontend dependencies..."
+	@if [ -d $(FRONTEND_DIR)/node_modules ]; then \
+		echo "✓ Frontend dependencies installed"; \
+	else \
+		echo "✗ Frontend dependencies missing (run 'make install-frontend')"; \
+	fi
+	@echo ""
+	@echo "7. Checking .env configuration..."
+	@if [ -f $(BACKEND_DIR)/.env ]; then \
+		echo "✓ Backend .env exists"; \
+	else \
+		echo "✗ Backend .env missing (run 'make setup')"; \
+	fi
+	@echo ""
+	@echo "8. Checking database..."
+	@if [ -f $(BACKEND_DIR)/database/database.sqlite ]; then \
+		echo "✓ Database file exists"; \
+	else \
+		echo "✗ Database missing (run 'make migrate')"; \
+	fi
+	@echo ""
+	@echo "=== Validation Complete ==="
+
+.PHONY: status
+status: ### Show status of all services
+	@echo "=== Service Status ==="
+	@echo ""
+	@echo "Backend (should be at $(BACKEND_URL)):"
+	@curl -s $(BACKEND_URL)/api/health 2>/dev/null && echo "✓ Running" || echo "✗ Not running"
+	@echo ""
+	@echo "Frontend (should be at $(FRONTEND_URL)):"
+	@curl -s $(FRONTEND_URL) 2>/dev/null >/dev/null && echo "✓ Running" || echo "✗ Not running"
+
+# =============================================================================
 # Artisan Commands
 # =============================================================================
 
 .PHONY: artisan
 artisan: ### Run artisan command (usage: make artisan cmd="migrate:status")
 	cd $(BACKEND_DIR) && php artisan $(cmd)
+
+.PHONY: composer
+composer: ### Run composer command (usage: make composer cmd="require package")
+	cd $(BACKEND_DIR) && $(COMPOSER) $(cmd)
 
 # =============================================================================
 # Git
