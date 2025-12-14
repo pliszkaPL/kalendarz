@@ -76,8 +76,29 @@
 ## Docker / Docker compose rules
 
 - make multiple steps Docker images ( steps for environments dev, test, stage ,prod )
-- all docker related files like configs and Dockerfiles should be stored in docker 
+- all docker related files like configs and Dockerfiles should be stored in docker
 - don't add version to docker-compose files as is not required anymore
+
+## Host Docker Configuration
+
+**IMPORTANT**: This host uses **rootless Docker** - critical for socket mounting in docker-compose.
+
+| Property | Value |
+|----------|-------|
+| Mode | Rootless Docker |
+| Context | `rootless` |
+| Socket | `/run/user/1000/docker.sock` |
+| Client | Docker Engine Community 28.5.1 |
+| Server | 27.5.1 |
+| User UID | 1000 |
+
+When mounting Docker socket in containers (e.g., Traefik), use:
+```yaml
+volumes:
+  - ${XDG_RUNTIME_DIR:-/run/user/1000}/docker.sock:/var/run/docker.sock:ro
+```
+
+Do NOT use `/var/run/docker.sock` - it won't work with rootless Docker.
 
 ## Readme and documentations
 
