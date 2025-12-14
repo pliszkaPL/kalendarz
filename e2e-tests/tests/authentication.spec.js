@@ -26,12 +26,13 @@ test.describe('User Authentication', () => {
     await page.fill('input[id="register-password-confirm"]', testPassword);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    // Wait for redirect to dashboard
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
-    expect(page.url()).toContain('/dashboard');
+    // Wait for redirect to calendar
+    await page.waitForURL('**/calendar', { timeout: 10000 });
+    expect(page.url()).toContain('/calendar');
 
-    // Logout
-    await page.click('button:has-text("Logout")');
+    // Logout - accept confirm dialog
+    page.once('dialog', dialog => dialog.accept());
+    await page.click('button:has-text("Wyloguj")');
     await page.waitForURL('/', { timeout: 5000 });
 
     // Now login with the same credentials
@@ -42,12 +43,12 @@ test.describe('User Authentication', () => {
     await page.fill('input[id="login-password"]', testPassword);
     await page.click('button[type="submit"]:has-text("Login")');
 
-    // Wait for redirect to dashboard
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    // Wait for redirect to calendar
+    await page.waitForURL('**/calendar', { timeout: 10000 });
 
-    // Verify we're on the dashboard
-    expect(page.url()).toContain('/dashboard');
-    await expect(page.locator(`text=Welcome, ${testName}`)).toBeVisible();
+    // Verify we're on the calendar
+    expect(page.url()).toContain('/calendar');
+    await expect(page.locator('text=Twój kalendarz')).toBeVisible();
   });
 
   test('should show error for invalid credentials', async ({ page }) => {
@@ -66,17 +67,17 @@ test.describe('User Authentication', () => {
     await expect(errorMessage).toBeVisible();
   });
 
-  test('should redirect to login when accessing dashboard without auth', async ({ page }) => {
+  test('should redirect to login when accessing calendar without auth', async ({ page }) => {
     // Clear any existing session
     await page.context().clearCookies();
-    await page.goto('/dashboard');
+    await page.goto('/calendar');
 
     // Should be redirected to login page
     await page.waitForURL('/', { timeout: 5000 });
-    expect(page.url()).not.toContain('/dashboard');
+    expect(page.url()).not.toContain('/calendar');
   });
 
-  test('should redirect authenticated user from login to dashboard', async ({ page }) => {
+  test('should redirect authenticated user from login to calendar', async ({ page }) => {
     // First login
     const timestamp = Date.now();
     const email = `redirect${timestamp}@example.com`;
@@ -94,14 +95,14 @@ test.describe('User Authentication', () => {
     await page.fill('input[id="register-password-confirm"]', password);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    await page.waitForURL('**/calendar', { timeout: 10000 });
 
     // Try to navigate to login page while authenticated
     await page.goto('/');
 
-    // Should be redirected back to dashboard
-    await page.waitForURL('**/dashboard', { timeout: 5000 });
-    expect(page.url()).toContain('/dashboard');
+    // Should be redirected back to calendar
+    await page.waitForURL('**/calendar', { timeout: 5000 });
+    expect(page.url()).toContain('/calendar');
   });
 
   test('should successfully logout and clear session', async ({ page }) => {
@@ -121,20 +122,21 @@ test.describe('User Authentication', () => {
     await page.fill('input[id="register-password-confirm"]', password);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    await page.waitForURL('**/calendar', { timeout: 10000 });
 
-    // Logout
-    await page.click('button:has-text("Logout")');
+    // Logout - accept confirm dialog
+    page.once('dialog', dialog => dialog.accept());
+    await page.click('button:has-text("Wyloguj")');
     await page.waitForURL('/', { timeout: 5000 });
 
     // Verify we're back on login page
-    expect(page.url()).not.toContain('/dashboard');
+    expect(page.url()).not.toContain('/calendar');
 
-    // Try to access dashboard again
-    await page.goto('/dashboard');
+    // Try to access calendar again
+    await page.goto('/calendar');
     await page.waitForURL('/', { timeout: 5000 });
 
     // Should be redirected to login
-    expect(page.url()).not.toContain('/dashboard');
+    expect(page.url()).not.toContain('/calendar');
   });
 });

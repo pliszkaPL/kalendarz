@@ -1,0 +1,53 @@
+name: 'Start Application Services'
+description: 'Starts Laravel backend and nginx frontend server'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up hosts file
+      shell: bash
+      run: |
+        echo "127.0.0.1 kalendarz.loc" | sudo tee -a /etc/hosts
+
+    - name: Start Laravel backend
+      shell: bash
+      run: |
+        cd backend
+        php artisan serve --host=127.0.0.1 --port=8000 > /tmp/backend.log 2>&1 &
+        echo $! > /tmp/backend.pid
+        echo "Waiting for backend to start..."
+        sleep 5
+        echo "Testing backend health endpoint..."
+        curl -v -f http://127.0.0.1:8000/api/health || (echo "Backend failed to start!" && cat /tmp/backend.log && exit 1)
+        echo "Backend is running!"
+
+    - name: Install and configure nginx
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nginx
+        sudo rm /etc/nginx/sites-enabled/default
+        sudo mkdir -p /var/www/frontend
+        sudo cp -r frontend/dist/* /var/www/frontend/
+        sudo cp nginx.ci.conf /etc/nginx/sites-enabled/kalendarz.conf
+        sudo nginx -t
+        sudo systemctl restart nginx
+
+    - name: Wait for services to be ready
+      shell: bash
+      run: |
+        echo "=== Final verification ==="
+        echo ""
+        echo "1. Testing backend health..."
+        curl -f http://127.0.0.1:8000/api/health
+        echo ""
+        echo ""
+        echo "2. Testing frontend on localhost (nginx)..."
+        timeout 60 bash -c 'until curl -f http://localhost/ 2>/dev/null | grep -q "Kalendarz"; do echo "Waiting for frontend..."; sleep 2; done'
+        echo ""
+        echo "3. Testing frontend HTML content..."
+        curl -s http://localhost/ | head -20
+        echo ""
+        echo "=== All services are ready! ==="
+        echo "  - Backend: http://127.0.0.1:8000"
+        echo "  - Frontend: http://localhost"

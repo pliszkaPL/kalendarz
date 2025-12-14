@@ -1,0 +1,39 @@
+name: 'Setup Playwright'
+description: 'Installs E2E test dependencies and Playwright browsers'
+
+inputs:
+  use-cache:
+    description: 'Whether to use browser cache'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install E2E test dependencies
+      shell: bash
+      run: |
+        cd e2e-tests
+        npm ci
+
+    - name: Cache Playwright browsers
+      if: inputs.use-cache == 'true'
+      uses: actions/cache@v5
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('e2e-tests/package-lock.json') }}
+
+    - name: Install Playwright browsers
+      if: inputs.use-cache != 'true' || steps.playwright-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        cd e2e-tests
+        npx playwright install chromium --with-deps
+
+    - name: Install Playwright browser dependencies (if cached)
+      if: inputs.use-cache == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        cd e2e-tests
+        npx playwright install-deps chromium

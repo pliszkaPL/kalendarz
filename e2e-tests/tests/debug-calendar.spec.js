@@ -21,7 +21,7 @@ test('debug calendar page', async ({ page }) => {
   await page.fill('input[id="register-password-confirm"]', testPassword);
   await page.click('button[type="submit"]:has-text("Register")');
 
-  await page.waitForURL('**/dashboard', { timeout: 10000 });
+  await page.waitForURL('**/calendar', { timeout: 10000 });
   
   // Navigate to calendar
   await page.click('a[href="/calendar"]');

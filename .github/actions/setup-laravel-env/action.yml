@@ -1,0 +1,27 @@
+name: 'Setup Laravel Environment'
+description: 'Configures Laravel .env file, generates keys, and runs migrations'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up backend .env
+      shell: bash
+      run: |
+        cp backend/.env.example backend/.env
+        sed -i 's/APP_URL=http:\/\/localhost/APP_URL=http:\/\/localhost/' backend/.env
+        sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=cookie/' backend/.env
+        sed -i 's/SESSION_DOMAIN=null/SESSION_DOMAIN=localhost/' backend/.env
+        echo "SANCTUM_STATEFUL_DOMAINS=localhost,kalendarz.loc" >> backend/.env
+
+    - name: Generate application key
+      shell: bash
+      run: |
+        cd backend
+        php artisan key:generate
+
+    - name: Run migrations
+      shell: bash
+      run: |
+        cd backend
+        touch database/database.sqlite
+        php artisan migrate --force

@@ -1,0 +1,32 @@
+name: 'Setup Frontend Environment'
+description: 'Sets up Node.js and installs frontend dependencies'
+
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+        cache-dependency-path: |
+          frontend/package-lock.json
+          e2e-tests/package-lock.json
+
+    - name: Install frontend dependencies
+      shell: bash
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Build frontend
+      shell: bash
+      run: |
+        cd frontend
+        npm run build

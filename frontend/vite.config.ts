@@ -10,19 +10,17 @@ export default defineConfig({
     }
   },
   server: {
-    host: '0.0.0.0',
-    port: 3000,
-    strictPort: true,
-    hmr: {
-      clientPort: 80,
-      host: 'kalendarz.loc'
-    },
-    allowedHosts: [
-      'kalendarz.loc',
-      '.kalendarz.loc'
-    ],
-    watch: {
-      usePolling: true
+    host: '127.0.0.1',
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true
+      },
+      '/sanctum': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true
+      }
     }
   }
 })

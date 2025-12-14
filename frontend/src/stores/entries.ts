@@ -116,8 +116,8 @@ export const useEntriesStore = defineStore('entries', () => {
     const lowerQuery = query.toLowerCase()
     return allEntries.value.filter(e =>
       e.name.toLowerCase().includes(lowerQuery) ||
-      e.description.toLowerCase().includes(lowerQuery) ||
-      e.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+      e.description?.toLowerCase().includes(lowerQuery) ||
+      e.tags?.some(tag => tag.toLowerCase().includes(lowerQuery))
     )
   }
   

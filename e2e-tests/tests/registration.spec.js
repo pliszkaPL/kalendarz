@@ -26,15 +26,14 @@ test.describe('User Registration', () => {
     // Submit the form
     await page.click('button[type="submit"]:has-text("Register")');
 
-    // Wait for redirect to dashboard
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    // Wait for redirect to calendar
+    await page.waitForURL('**/calendar', { timeout: 10000 });
 
-    // Verify we're on the dashboard
-    expect(page.url()).toContain('/dashboard');
+    // Verify we're on the calendar
+    expect(page.url()).toContain('/calendar');
 
-    // Verify the user name is displayed
-    await expect(page.locator(`text=Welcome, ${testName}`)).toBeVisible();
-    await expect(page.locator('h2:has-text("Dashboard")')).toBeVisible();
+    // Verify the calendar page is displayed
+    await expect(page.locator('text=Twój kalendarz')).toBeVisible();
   });
 
   test('should show error for duplicate email registration', async ({ page }) => {
@@ -55,11 +54,12 @@ test.describe('User Registration', () => {
     await page.fill('input[id="register-password-confirm"]', testPassword);
     await page.click('button[type="submit"]:has-text("Register")');
 
-    // Wait for redirect to dashboard
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    // Wait for redirect to calendar
+    await page.waitForURL('**/calendar', { timeout: 10000 });
 
-    // Logout
-    await page.click('button:has-text("Logout")');
+    // Logout - accept confirm dialog
+    page.once('dialog', dialog => dialog.accept());
+    await page.click('button:has-text("Wyloguj")');
     await page.waitForURL('/', { timeout: 5000 });
 
     // Try to register with the same email

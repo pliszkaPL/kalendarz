@@ -1,9 +1,7 @@
 import axios from 'axios'
 
-const API_URL = 'http://kalendarz.loc/api'
-
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: '/api',
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
@@ -19,8 +17,15 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+async function getCsrfCookie() {
+  await axios.get('/sanctum/csrf-cookie', {
+    withCredentials: true
+  })
+}
+
 export const authService = {
   async register(name, email, password, password_confirmation) {
+    await getCsrfCookie()
     const response = await api.post('/register', {
       name,
       email,
@@ -35,6 +40,7 @@ export const authService = {
   },
 
   async login(email, password) {
+    await getCsrfCookie()
     const response = await api.post('/login', {
       email,
       password

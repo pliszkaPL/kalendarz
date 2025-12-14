@@ -1,0 +1,43 @@
+name: 'Setup Backend Environment'
+description: 'Sets up PHP, Composer dependencies, and Laravel environment'
+
+inputs:
+  php-version:
+    description: 'PHP version to use'
+    required: false
+    default: '8.4'
+  composer-version:
+    description: 'Composer version to use'
+    required: false
+    default: '2.8.4'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        extensions: mbstring, sqlite3, pdo_sqlite, dom, curl, libxml, zip, pcntl, pdo
+        coverage: none
+        tools: composer:${{ inputs.composer-version }}
+
+    - name: Get Composer Cache Directory
+      id: composer-cache
+      shell: bash
+      run: |
+        echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v5
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
+    - name: Install backend dependencies
+      shell: bash
+      run: |
+        cd backend
+        composer install --no-interaction --prefer-dist --optimize-autoloader
