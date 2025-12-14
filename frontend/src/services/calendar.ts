@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { Entry, Group } from '../types'
 
 const API_URL = 'http://kalendarz.loc/api'
 
@@ -19,15 +20,23 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+export interface SyncResponse {
+  success: boolean
+  message: string
+  entries_count: number
+  groups_count: number
+  saved_at: string
+}
+
 export const calendarService = {
   /**
    * Synchronize calendar entries and groups to backend
-   * @param {Array} entries - Array of Entry objects
-   * @param {Array} groups - Array of Group objects
-   * @returns {Promise<Object>} Response with success status and message
+   * @param entries - Array of Entry objects
+   * @param groups - Array of Group objects
+   * @returns Response with success status and message
    */
-  async syncToBackend(entries, groups) {
-    const response = await api.post('/calendar/sync', {
+  async syncToBackend(entries: Entry[], groups: Group[]): Promise<SyncResponse> {
+    const response = await api.post<SyncResponse>('/calendar/sync', {
       entries,
       groups
     })
