@@ -25,10 +25,46 @@ test.describe('Smoke Tests - Critical Path', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    // Monitor network requests for performance issues
+    // Monitor ALL console messages including warnings
+    page.on('console', msg => {
+      const type = msg.type();
+      const text = msg.text();
+      console.log(`[Browser ${type.toUpperCase()}]:`, text);
+    });
+
+    // Monitor page errors (uncaught exceptions)
+    page.on('pageerror', error => {
+      console.log('[PAGE ERROR]:', error.message);
+      console.log('[PAGE ERROR STACK]:', error.stack);
+    });
+
+    // Monitor failed requests
+    page.on('requestfailed', request => {
+      console.log('[REQUEST FAILED]:', request.url(), request.failure()?.errorText);
+    });
+
+    // Monitor ALL requests (success and fail)
     page.on('response', async response => {
-      // Note: response.timing() was removed in newer Playwright versions
-      // If you need detailed timing, use page.on('requestfinished') instead
+      const url = response.url();
+      const status = response.status();
+      const contentType = response.headers()['content-type'];
+      
+      // Log all JS/CSS files
+      if (url.includes('.js') || url.includes('.css') || url.includes('/assets/')) {
+        console.log(`[RESOURCE] ${status} ${contentType} - ${url}`);
+        
+        // If JS/CSS failed, log it
+        if (status !== 200) {
+          console.log(`[RESOURCE ERROR] Failed to load: ${url}`);
+        }
+      }
+    });
+
+    // Monitor when page navigates
+    page.on('framenavigated', frame => {
+      if (frame === page.mainFrame()) {
+        console.log('[NAVIGATION]:', frame.url());
+      }
     });
   });
 
@@ -123,6 +159,38 @@ test.describe('Smoke Tests - Critical Path', () => {
     }
     expect(page.url()).toContain('/calendar');
 
+    // DEBUG: Check what's loaded on /calendar page
+    console.log('=== DEBUG: On /calendar page ===');
+    console.log('URL:', page.url());
+    
+    // Wait a bit for JS to load
+    await page.waitForTimeout(2000);
+    
+    // Check if Vue app div exists
+    const appDiv = await page.locator('#app').count();
+    console.log('DEBUG: #app div exists:', appDiv > 0);
+    
+    // Check if #app has any content
+    const appContent = await page.locator('#app').innerHTML().catch(() => '');
+    console.log('DEBUG: #app innerHTML length:', appContent.length);
+    console.log('DEBUG: #app innerHTML preview:', appContent.substring(0, 500));
+    
+    // Check all script tags
+    const scripts = await page.locator('script').evaluateAll(scripts => 
+      scripts.map(s => ({ src: s.src, type: s.type, hasContent: s.innerHTML.length > 0 }))
+    );
+    console.log('DEBUG: Script tags:', JSON.stringify(scripts, null, 2));
+    
+    // Check localStorage (token should be there)
+    const token = await page.evaluate(() => localStorage.getItem('token'));
+    console.log('DEBUG: localStorage token exists:', !!token);
+    
+    // Check if any Vue-specific classes exist
+    const vueElements = await page.locator('[class*="calendar"], [class*="navbar"], [class*="vue"]').count();
+    console.log('DEBUG: Vue-related elements count:', vueElements);
+    
+    console.log('=== END DEBUG ===');
+
     // Wait for Vue app to mount - increased timeout for CI
     // The app needs time to load, mount Vue, and render
     await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
@@ -134,9 +202,9 @@ test.describe('Smoke Tests - Critical Path', () => {
       page.waitForSelector('.calendar-grid', { timeout: 15000 }),
       page.waitForSelector('h1.app-title', { timeout: 15000 }),
       page.waitForSelector('.calendar-view', { timeout: 15000 })
-    ]).catch(async () => {
+    ]).catch(() => {
       console.error('Vue failed to mount. Console errors:', errors);
-      console.log('Page HTML:', await page.content());
+      console.error('Check browser console logs above for JS errors');
       throw new Error(`Vue app did not mount. Console errors: ${errors.join(', ')}`);
     });
     
