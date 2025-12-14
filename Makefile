@@ -202,6 +202,14 @@ tests-e2e-headed test-e2e-headed: ### Run E2E tests with browser
 tests-e2e-ui test-e2e-ui: ### Run E2E tests with Playwright UI
 	cd e2e-tests && npm run test:ui
 
+.PHONY: tests-smoke test-smoke smoke
+tests-smoke test-smoke smoke: ### Run smoke tests only (critical path)
+	cd e2e-tests && npx playwright test tests/smoke.spec.js
+
+.PHONY: tests-smoke-headed test-smoke-headed smoke-headed
+tests-smoke-headed test-smoke-headed smoke-headed: ### Run smoke tests with browser visible
+	cd e2e-tests && npx playwright test tests/smoke.spec.js --headed
+
 # =============================================================================
 # Cache / Cleanup
 # =============================================================================

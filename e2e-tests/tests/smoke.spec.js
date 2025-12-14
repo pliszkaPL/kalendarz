@@ -25,13 +25,10 @@ test.describe('Smoke Tests - Critical Path', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    // Log slow network requests
-    page.on('response', response => {
-      const request = response.request();
-      const timing = response.timing();
-      if (timing.responseEnd > 1000) { // Slower than 1s
-        console.log(`SLOW REQUEST: ${request.url()} took ${timing.responseEnd}ms`);
-      }
+    // Monitor network requests for performance issues
+    page.on('response', async response => {
+      // Note: response.timing() was removed in newer Playwright versions
+      // If you need detailed timing, use page.on('requestfinished') instead
     });
   });
 
@@ -163,10 +160,16 @@ test.describe('Smoke Tests - Critical Path', () => {
     await page.waitForSelector('.modal-overlay', { timeout: 3000 });
     
     const entryName = `Smoke Test Entry ${timestamp}`;
-    await page.fill('input[placeholder="Nazwa wpisu"]', entryName);
+    await page.fill('input[id="entry-name"]', entryName);
     
-    // Submit form
-    await page.click('button[type="submit"]:has-text("Zapisz")');
+    // Fill required date field
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = tomorrow.toISOString().split('T')[0];
+    await page.fill('input[id="entry-date"]', dateStr);
+    
+    // Submit form (button says "Dodaj" for new entries)
+    await page.click('button[type="submit"]:has-text("Dodaj")');
     
     // Wait for modal to close
     await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 3000 });
