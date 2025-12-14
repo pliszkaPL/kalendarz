@@ -193,24 +193,38 @@ jobs:
       - name: Wait for Traefik to register frontend router
         run: |
           echo "Waiting for Traefik to discover frontend service..."
-          timeout 90 bash -c '
+          timeout 120 bash -c '
+            ITERATION=0
             while ! curl -s http://localhost:8080/api/http/routers 2>/dev/null | grep -q "frontend@docker"; do
-              echo "=== DEBUG: Current Traefik routers ==="
-              curl -s http://localhost:8080/api/http/routers 2>/dev/null | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/api/http/routers 2>/dev/null || echo "API not ready"
+              ITERATION=$((ITERATION + 1))
               echo ""
-              echo "=== DEBUG: Current Traefik services ==="
-              curl -s http://localhost:8080/api/http/services 2>/dev/null | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/api/http/services 2>/dev/null || echo "API not ready"
+              echo "######################################################"
+              echo "### ITERATION $ITERATION - $(date) ###"
+              echo "######################################################"
               echo ""
-              echo "=== DEBUG: All containers ==="
+              echo "=== DEBUG 1: All containers status ==="
               docker compose ps -a
               echo ""
-              echo "=== DEBUG: Docker labels on frontend ==="
-              docker inspect $(docker compose ps -q frontend) --format "{{json .Config.Labels}}" 2>/dev/null | python3 -m json.tool 2>/dev/null || echo "Cannot inspect frontend"
+              echo "=== DEBUG 2: Frontend container health ==="
+              docker inspect $(docker compose ps -q frontend 2>/dev/null) --format "Health: {{.State.Health.Status}}, State: {{.State.Status}}" 2>/dev/null || echo "Cannot get frontend health"
               echo ""
-              echo "=== DEBUG: Traefik logs (last 20) ==="
-              docker compose logs traefik --tail 20
+              echo "=== DEBUG 3: Current Traefik routers ==="
+              curl -s http://localhost:8080/api/http/routers 2>/dev/null || echo "Traefik API not ready"
               echo ""
-              echo "--- Waiting 5s before next check ---"
+              echo "=== DEBUG 4: Docker labels on frontend container ==="
+              docker inspect $(docker compose ps -q frontend 2>/dev/null) --format "{{range \$k, \$v := .Config.Labels}}{{printf \"%s=%s\n\" \$k \$v}}{{end}}" 2>/dev/null | grep traefik || echo "No traefik labels or cannot inspect"
+              echo ""
+              echo "=== DEBUG 5: Traefik logs (errors and provider info) ==="
+              docker compose logs traefik 2>&1 | grep -iE "(error|ERR|frontend|provider|docker)" | tail -30 || echo "No relevant logs"
+              echo ""
+              echo "=== DEBUG 6: Direct frontend connectivity test ==="
+              FRONTEND_IP=$(docker inspect $(docker compose ps -q frontend 2>/dev/null) -f "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 2>/dev/null)
+              echo "Frontend container IP: $FRONTEND_IP"
+              if [ -n "$FRONTEND_IP" ]; then
+                curl -s --connect-timeout 2 http://$FRONTEND_IP:80/ | head -3 || echo "Cannot reach frontend directly"
+              fi
+              echo ""
+              echo "--- Sleeping 5s before next iteration ---"
               sleep 5
             done
           '
@@ -430,24 +444,38 @@ jobs:
       - name: Wait for Traefik to register frontend router
         run: |
           echo "Waiting for Traefik to discover frontend service..."
-          timeout 90 bash -c '
+          timeout 120 bash -c '
+            ITERATION=0
             while ! curl -s http://localhost:8080/api/http/routers 2>/dev/null | grep -q "frontend@docker"; do
-              echo "=== DEBUG: Current Traefik routers ==="
-              curl -s http://localhost:8080/api/http/routers 2>/dev/null | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/api/http/routers 2>/dev/null || echo "API not ready"
+              ITERATION=$((ITERATION + 1))
               echo ""
-              echo "=== DEBUG: Current Traefik services ==="
-              curl -s http://localhost:8080/api/http/services 2>/dev/null | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/api/http/services 2>/dev/null || echo "API not ready"
+              echo "######################################################"
+              echo "### ITERATION $ITERATION - $(date) ###"
+              echo "######################################################"
               echo ""
-              echo "=== DEBUG: All containers ==="
+              echo "=== DEBUG 1: All containers status ==="
               docker compose ps -a
               echo ""
-              echo "=== DEBUG: Docker labels on frontend ==="
-              docker inspect $(docker compose ps -q frontend) --format "{{json .Config.Labels}}" 2>/dev/null | python3 -m json.tool 2>/dev/null || echo "Cannot inspect frontend"
+              echo "=== DEBUG 2: Frontend container health ==="
+              docker inspect $(docker compose ps -q frontend 2>/dev/null) --format "Health: {{.State.Health.Status}}, State: {{.State.Status}}" 2>/dev/null || echo "Cannot get frontend health"
               echo ""
-              echo "=== DEBUG: Traefik logs (last 20) ==="
-              docker compose logs traefik --tail 20
+              echo "=== DEBUG 3: Current Traefik routers ==="
+              curl -s http://localhost:8080/api/http/routers 2>/dev/null || echo "Traefik API not ready"
               echo ""
-              echo "--- Waiting 5s before next check ---"
+              echo "=== DEBUG 4: Docker labels on frontend container ==="
+              docker inspect $(docker compose ps -q frontend 2>/dev/null) --format "{{range \$k, \$v := .Config.Labels}}{{printf \"%s=%s\n\" \$k \$v}}{{end}}" 2>/dev/null | grep traefik || echo "No traefik labels or cannot inspect"
+              echo ""
+              echo "=== DEBUG 5: Traefik logs (errors and provider info) ==="
+              docker compose logs traefik 2>&1 | grep -iE "(error|ERR|frontend|provider|docker)" | tail -30 || echo "No relevant logs"
+              echo ""
+              echo "=== DEBUG 6: Direct frontend connectivity test ==="
+              FRONTEND_IP=$(docker inspect $(docker compose ps -q frontend 2>/dev/null) -f "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 2>/dev/null)
+              echo "Frontend container IP: $FRONTEND_IP"
+              if [ -n "$FRONTEND_IP" ]; then
+                curl -s --connect-timeout 2 http://$FRONTEND_IP:80/ | head -3 || echo "Cannot reach frontend directly"
+              fi
+              echo ""
+              echo "--- Sleeping 5s before next iteration ---"
               sleep 5
             done
           '
