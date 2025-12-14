@@ -11,10 +11,41 @@ on:
       - main
 
 jobs:
-  smoke-tests:
-    name: Smoke Tests (Critical Path)
+  unit-tests:
+    name: Unit Tests (Backend)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    env:
+      APP_ENV: testing
+      CI: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Copy environment file
+        run: cp backend/.env.example backend/.env
+
+      - name: Generate app key
+        run: |
+          cd backend
+          php artisan key:generate
+
+      - name: Run backend unit tests
+        run: |
+          cd backend
+          ./vendor/bin/pest --exclude-group=e2e
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
 
@@ -28,11 +59,69 @@ jobs:
       - name: Setup Backend
         uses: ./.github/actions/setup-backend
 
-      - name: Setup Laravel Environment
-        uses: ./.github/actions/setup-laravel-env
-
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
+
+      - name: Create build artifacts directory
+        run: |
+          mkdir -p build-artifacts
+          cp -r backend/vendor build-artifacts/backend-vendor
+          cp -r frontend/dist build-artifacts/frontend-dist
+          cp -r frontend/node_modules build-artifacts/frontend-node_modules
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-artifacts
+          path: build-artifacts/
+          retention-days: 1
+          compression-level: 6
+
+  smoke-tests:
+    name: Smoke Tests (Critical Path)
+    needs: [build, unit-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: build-artifacts
+          path: build-artifacts/
+
+      - name: Restore backend dependencies
+        run: |
+          cp -r build-artifacts/backend-vendor backend/vendor
+
+      - name: Restore frontend build
+        run: |
+          mkdir -p frontend/dist
+          cp -r build-artifacts/frontend-dist/* frontend/dist/
+          cp -r build-artifacts/frontend-node_modules frontend/node_modules
+
+      - name: Setup Laravel Environment
+        uses: ./.github/actions/setup-laravel-env
 
       - name: Start Services
         uses: ./.github/actions/start-services
@@ -68,7 +157,7 @@ jobs:
 
   full-tests:
     name: Full E2E Test Suite
-    needs: smoke-tests
+    needs: [build, smoke-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -81,14 +170,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Backend
-        uses: ./.github/actions/setup-backend
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: build-artifacts
+          path: build-artifacts/
+
+      - name: Restore backend dependencies
+        run: |
+          cp -r build-artifacts/backend-vendor backend/vendor
+
+      - name: Restore frontend build
+        run: |
+          mkdir -p frontend/dist
+          cp -r build-artifacts/frontend-dist/* frontend/dist/
+          cp -r build-artifacts/frontend-node_modules frontend/node_modules
 
       - name: Setup Laravel Environment
         uses: ./.github/actions/setup-laravel-env
-
-      - name: Setup Frontend
-        uses: ./.github/actions/setup-frontend
 
       - name: Start Services
         uses: ./.github/actions/start-services

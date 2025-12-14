@@ -13,9 +13,13 @@ runs:
       shell: bash
       run: |
         cd backend
-        php artisan serve --host=127.0.0.1 --port=8000 &
-        sleep 3
-        curl -f http://127.0.0.1:8000/api/health || exit 1
+        php artisan serve --host=127.0.0.1 --port=8000 > /tmp/backend.log 2>&1 &
+        echo $! > /tmp/backend.pid
+        echo "Waiting for backend to start..."
+        sleep 5
+        echo "Testing backend health endpoint..."
+        curl -v -f http://127.0.0.1:8000/api/health || (echo "Backend failed to start!" && cat /tmp/backend.log && exit 1)
+        echo "Backend is running!"
 
     - name: Install and configure nginx
       shell: bash
@@ -32,9 +36,18 @@ runs:
     - name: Wait for services to be ready
       shell: bash
       run: |
-        echo "Testing backend health..."
+        echo "=== Final verification ==="
+        echo ""
+        echo "1. Testing backend health..."
         curl -f http://127.0.0.1:8000/api/health
         echo ""
-        echo "Testing frontend through nginx..."
-        timeout 30 bash -c 'until curl -f http://localhost/ 2>/dev/null | grep -q "Kalendarz"; do sleep 1; done'
-        echo "Services are ready!"
+        echo ""
+        echo "2. Testing frontend on localhost (nginx)..."
+        timeout 60 bash -c 'until curl -f http://localhost/ 2>/dev/null | grep -q "Kalendarz"; do echo "Waiting for frontend..."; sleep 2; done'
+        echo ""
+        echo "3. Testing frontend HTML content..."
+        curl -s http://localhost/ | head -20
+        echo ""
+        echo "=== All services are ready! ==="
+        echo "  - Backend: http://127.0.0.1:8000"
+        echo "  - Frontend: http://localhost"

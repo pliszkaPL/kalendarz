@@ -15,7 +15,7 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: process.env.CI ? 'http://localhost' : 'http://127.0.0.1:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -29,8 +29,14 @@ export default defineConfig({
   ],
 
   // No webServer config - expects external services
-  // Backend: http://127.0.0.1:8000
-  // Frontend: http://127.0.0.1:5173 (Vite dev server)
+  // 
+  // Local development:
+  //   Backend: http://127.0.0.1:8000
+  //   Frontend: http://127.0.0.1:5173 (Vite dev server)
+  // 
+  // CI environment (GitHub Actions):
+  //   Backend: http://127.0.0.1:8000
+  //   Frontend: http://localhost (nginx serving built assets)
   // 
   // To run tests locally:
   //   1. Start servers: make dev (in one terminal)
